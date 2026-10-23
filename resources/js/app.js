@@ -1,3 +1,4 @@
+import './pwa';
 import './connection';
 
 if ('serviceWorker' in navigator) {

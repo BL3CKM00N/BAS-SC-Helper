@@ -1,7 +1,7 @@
 // Service worker: shows the offline screen when a page navigation cannot reach the server.
 // True only in local development (filled in by the server). The offline page then shows the dev markers.
 const DEV = __DEV__;
-const CACHE = 'bas-v5';
+const CACHE = 'bas-v6';
 const PRECACHE = ['/offline.html', '/logo.svg', '/favicon.svg', '/icons/icon-192.png', ...(DEV ? ['/logo-dev.svg'] : [])];
 const NAVIGATION_TIMEOUT = 10000;
 

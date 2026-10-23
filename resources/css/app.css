@@ -90,3 +90,18 @@ html[data-env='local'] .conn-overlay::after {
         animation-duration: 3s;
     }
 }
+
+/* Installed app (PWA) only: no double-tap zoom, no pull-to-refresh bounce, no tap flash. */
+@media (display-mode: standalone) {
+    html {
+        touch-action: manipulation;
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+    }
+
+    html,
+    body {
+        overscroll-behavior: none;
+        -webkit-tap-highlight-color: transparent;
+    }
+}

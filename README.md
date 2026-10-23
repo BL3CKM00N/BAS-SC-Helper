@@ -52,6 +52,7 @@ vendor/bin/pint     # fix code style
 ## PWA and connection handling
 
 - **Install:** `public/manifest.webmanifest` plus the icons in `public/icons/` make the app installable. The favicon has no background (`public/favicon.svg`), the PWA icons use the dark brand colour so they look right on a home screen.
+- **No zoom in the installed app:** when the app runs standalone, `resources/js/pwa.js` locks the viewport (no pinch or double-tap zoom) and the CSS disables pull-to-refresh bounce and the tap flash. Normal browser tabs keep regular zoom, so the site stays accessible there.
 - **Offline screen:** a service worker (`resources/sw.js`, served at `/sw.js`) shows `public/offline.html` when a page cannot be loaded. It tells apart "no internet connection" and "can't reach the server" and reloads the page by itself when the server is back.
 - **Live check while using the app:** `resources/js/connection.js` checks `/up` every second (every 10 s in a background tab) and on network changes. A failed check is retried after half a second, so the overlay appears 1 to 2 seconds after the connection drops. It shows an overlay when the connection drops and hides it again when it returns, without reloading the page or losing what you were doing.
 - **Cache version:** when `public/offline.html` or the precached files change, bump the `CACHE` name in `resources/sw.js`.
