@@ -3,11 +3,19 @@
 use Illuminate\Support\Facades\Route;
 
 Route::get('/sw.js', function () {
-    $script = str_replace('__DEV__', app()->environment('local') ? 'true' : 'false', file_get_contents(resource_path('sw.js')));
+    // The version is a hash of the files the service worker precaches.
+    $files = ['offline.html', 'logo.svg', 'favicon.svg', 'icons/icon-192.png'];
+    $version = substr(md5(collect($files)->map(fn ($file) => md5_file(public_path($file)))->implode('')), 0, 10);
+
+    $script = str_replace(
+        ['__VERSION__', '__DEV__'],
+        [$version, app()->environment('local') ? 'true' : 'false'],
+        file_get_contents(resource_path('sw.js')),
+    );
 
     return response($script, 200, [
         'Content-Type' => 'application/javascript',
-        'Cache-Control' => 'no-cache, must-revalidate',
+        'Cache-Control' => 'no-cache, no-store, must-revalidate',
         'Service-Worker-Allowed' => '/',
     ]);
 });

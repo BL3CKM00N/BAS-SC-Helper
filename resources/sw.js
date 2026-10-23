@@ -1,8 +1,19 @@
 // Service worker: shows the offline screen when a page navigation cannot reach the server.
+// __VERSION__ is replaced by the server with a hash of the precached files (see routes/web.php),
+// so a changed file gives a new worker and a new cache. The version in the URLs also keeps
+// Cloudflare from handing out an outdated copy.
+const VERSION = '__VERSION__';
 // True only in local development (filled in by the server). The offline page then shows the dev markers.
 const DEV = __DEV__;
-const CACHE = 'bas-v6';
-const PRECACHE = ['/offline.html', '/logo.svg', '/favicon.svg', '/icons/icon-192.png', ...(DEV ? ['/logo-dev.svg'] : [])];
+const CACHE = `bas-${VERSION}`;
+const PRECACHE = [
+    `/offline.html?v=${VERSION}`,
+    `/logo.svg?v=${VERSION}`,
+    `/favicon.svg?v=${VERSION}`,
+    `/icons/icon-192.png?v=${VERSION}`,
+    ...(DEV ? [`/logo-dev.svg?v=${VERSION}`] : []),
+];
+const PRECACHE_PATHS = PRECACHE.map((url) => new URL(url, self.location.origin).pathname);
 const NAVIGATION_TIMEOUT = 10000;
 
 self.addEventListener('install', (event) => {
@@ -18,7 +29,7 @@ self.addEventListener('activate', (event) => {
 });
 
 async function offlinePage() {
-    const cached = await caches.match('/offline.html');
+    const cached = await caches.match('/offline.html', { ignoreSearch: true });
 
     if (!cached || !DEV) return cached;
 
@@ -59,7 +70,7 @@ self.addEventListener('fetch', (event) => {
     }
 
     // Static assets the offline screens need are served from the cache first.
-    if (request.method === 'GET' && PRECACHE.includes(new URL(request.url).pathname)) {
+    if (request.method === 'GET' && PRECACHE_PATHS.includes(new URL(request.url).pathname)) {
         event.respondWith(caches.match(request, { ignoreSearch: true }).then((cached) => cached || fetch(request)));
     }
 });
