@@ -1,58 +1,73 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
-
 <p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
+  <img src="docs/readme-banner.svg" alt="BAS World" width="800">
 </p>
 
-## About Laravel
+# BAS SC Helper
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+A helper app for the service coordinator (SC) role at BAS World. It exists to make day-to-day service coordination easier: less manual work, fewer things to remember, everything in one place.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+> **Status:** early stage. The base project, the installable app shell and the error and connection screens are in place. Features are added step by step and tracked in the [Roadmap](#roadmap).
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## What it is
 
-## Learning Laravel
+- A Laravel web app that can be installed on a phone or desktop as a PWA.
+- Built around the workflow of a service coordinator. The feature list below grows as the workflow is mapped out.
+- No login yet. Authentication will be added when it is needed.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## Tech stack
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+| Part | Choice |
+|---|---|
+| Backend | Laravel 13, PHP 8.4+ |
+| Frontend | Blade, Vite, Tailwind CSS 4 |
+| Database | SQLite locally, PostgreSQL in production |
+| App shell | PWA (web manifest, service worker, offline screen) |
+| Hosting | Self-hosted with Dokploy (nixpacks build), served over HTTPS at `bas.flashba.ng` |
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+## Local development
 
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+Requirements: PHP 8.4+, Composer, Node 22.
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+composer setup      # install dependencies, create .env, generate the key, migrate, build assets
+php artisan serve   # http://localhost:8000
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+For frontend work with hot reload, run `npm run dev` next to `php artisan serve`.
 
-## Contributing
+Locally the app uses SQLite (`database/database.sqlite`), so no database server is needed.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```bash
+php artisan test    # run the tests
+vendor/bin/pint     # fix code style
+```
 
-## Code of Conduct
+## Production
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+- **Database:** PostgreSQL. Production sets `DB_CONNECTION=pgsql` and the `DB_*` variables in the Dokploy app environment. The `.env` file is never committed.
+- **Build and start:** nixpacks builds the app (the PHP and Node versions come from `composer.json` and `package.json`). `nixpacks.toml` runs the migrations and starts the server on every deploy.
+- **Proxy:** the app runs behind Traefik and Cloudflare, so proxies are trusted in `bootstrap/app.php`.
+- **Caching:** the logo and favicon URLs carry a `?v=` version so Cloudflare never serves an outdated image. `/sw.js` is served with `no-cache`.
 
-## Security Vulnerabilities
+## PWA and connection handling
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+- **Install:** `public/manifest.webmanifest` plus the icons in `public/icons/` make the app installable. The favicon has no background (`public/favicon.svg`), the PWA icons use the dark brand colour so they look right on a home screen.
+- **Offline screen:** a service worker (`resources/sw.js`, served at `/sw.js`) shows `public/offline.html` when a page cannot be loaded. It tells apart "no internet connection" and "can't reach the server" and reloads the page by itself when the server is back.
+- **Live check while using the app:** `resources/js/connection.js` checks `/up` every second (every 10 s in a background tab) and on network changes. A failed check is retried after half a second, so the overlay appears 1 to 2 seconds after the connection drops. It shows an overlay when the connection drops and hides it again when it returns, without reloading the page or losing what you were doing.
+- **Cache version:** when `public/offline.html` or the precached files change, bump the `CACHE` name in `resources/sw.js`.
+- **Error pages:** styled 403, 404, 419, 429, 500 and 503 pages live in `resources/views/errors/` and share the layout in `resources/views/layouts/app.blade.php`.
 
-## License
+## Roadmap
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Nothing here is promised yet. The list is filled in as the service coordinator workflow is mapped out.
+
+- [x] Base Laravel project and deployment
+- [x] BAS World branding, favicon and PWA icons
+- [x] Offline, server-unreachable and error screens
+- [ ] Map the service coordinator workflow and decide the first feature
+- [ ] Authentication (when needed)
+
+## Conventions
+
+- Commit messages are short and describe the change. No co-author lines.
+- Keep this README up to date when features, setup steps or deployment details change.
