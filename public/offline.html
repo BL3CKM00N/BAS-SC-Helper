@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en" data-app="bas-offline">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#1d1d1a">
+    <title>Offline - BAS SC Helper</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+            padding: 1.5rem; background: #1d1d1a; color: #fff; text-align: center;
+            font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif; -webkit-font-smoothing: antialiased;
+        }
+        main { max-width: 24rem; display: flex; flex-direction: column; align-items: center; }
+        img { height: 2rem; width: auto; margin-bottom: 2.5rem; }
+        .spinner {
+            height: 2rem; width: 2rem; border: 3px solid rgba(184, 186, 184, .25); border-top-color: #1da15e;
+            border-radius: 9999px; animation: spin .9s linear infinite;
+        }
+        h1 { margin: 1.5rem 0 0; font-size: 1.25rem; font-weight: 500; }
+        p { margin: .5rem 0 0; font-size: .875rem; line-height: 1.5rem; color: #b8bab8; }
+        @media (display-mode: standalone) {
+            html { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+            html, body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 3s; } }
+    </style>
+</head>
+<body>
+    <main role="alert" aria-live="assertive">
+        <img src="/logo.svg" alt="BAS World">
+        <div class="spinner" aria-hidden="true"></div>
+        <h1 id="title">No internet connection</h1>
+        <p id="text">Connect to Wi-Fi or mobile data to use BAS SC Helper. This page reloads by itself when you're back online.</p>
+    </main>
+    <script>
+        (function () {
+            var title = document.getElementById('title');
+            var text = document.getElementById('text');
+            var checking = false;
+
+            function render() {
+                if (navigator.onLine) {
+                    title.textContent = "Can't reach the server";
+                    text.textContent = "The server isn't responding right now. We keep checking and will reload this page automatically.";
+                } else {
+                    title.textContent = 'No internet connection';
+                    text.textContent = "Connect to Wi-Fi or mobile data to use BAS SC Helper. This page reloads by itself when you're back online.";
+                }
+            }
+
+            function check() {
+                if (checking) return;
+                checking = true;
+                var controller = new AbortController();
+                var timer = setTimeout(function () { controller.abort(); }, 4000);
+
+                fetch('/up?_=' + Date.now(), { cache: 'no-store', signal: controller.signal })
+                    .then(function (response) { if (response.ok) location.reload(); })
+                    .catch(function () {})
+                    .then(function () { clearTimeout(timer); checking = false; render(); });
+            }
+
+            render();
+            setInterval(check, 3000);
+            window.addEventListener('online', function () { render(); setTimeout(check, 300); });
+            window.addEventListener('offline', render);
+        })();
+    </script>
+</body>
+</html>

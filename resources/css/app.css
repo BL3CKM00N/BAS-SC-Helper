@@ -7,3 +7,73 @@
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
+
+.conn-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    background: #1d1d1a;
+    color: #fff;
+    text-align: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.conn-overlay[hidden] {
+    display: none;
+}
+
+.conn-overlay.is-visible {
+    opacity: 1;
+}
+
+.conn-card {
+    display: flex;
+    max-width: 24rem;
+    flex-direction: column;
+    align-items: center;
+}
+
+.conn-logo {
+    height: 2rem;
+    width: auto;
+    margin-bottom: 2.5rem;
+}
+
+.conn-spinner {
+    height: 2rem;
+    width: 2rem;
+    border: 3px solid rgb(184 186 184 / 0.25);
+    border-top-color: #1da15e;
+    border-radius: 9999px;
+    animation: conn-spin 0.9s linear infinite;
+}
+
+.conn-title {
+    margin-top: 1.5rem;
+    font-size: 1.25rem;
+    font-weight: 500;
+}
+
+.conn-text {
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    line-height: 1.5rem;
+    color: #b8bab8;
+}
+
+@keyframes conn-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .conn-spinner {
+        animation-duration: 3s;
+    }
+}
