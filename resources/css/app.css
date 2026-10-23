@@ -23,6 +23,19 @@
     transition: opacity 0.2s ease;
 }
 
+html[data-env='local'] .conn-overlay::after {
+    content: 'Development environment';
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    padding: 0.5rem 0;
+    text-align: center;
+    font: 800 0.75rem system-ui, sans-serif;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #ef4444;
+}
+
 .conn-overlay[hidden] {
     display: none;
 }

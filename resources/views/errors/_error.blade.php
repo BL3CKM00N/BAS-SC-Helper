@@ -4,7 +4,7 @@
 
 @section('content')
     <main class="flex max-w-md flex-col items-center text-center">
-        <img src="/logo.svg" alt="BAS World" class="mb-10 h-8 w-auto">
+        <img src="{{ $logoUrl }}" alt="BAS World" class="mb-10 h-8 w-auto">
         <p class="text-6xl font-semibold tracking-tight text-[#1da15e]">{{ $code }}</p>
         <h1 class="mt-4 text-xl font-medium">{{ $title }}</h1>
         <p class="mt-2 text-sm leading-6 text-[#b8bab8]">{{ $message }}</p>

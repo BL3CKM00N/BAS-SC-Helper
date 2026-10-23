@@ -1,6 +1,7 @@
 // Live connection monitor. Shows an overlay when the device is offline or the server is
 // unreachable and hides it again when things recover. It never reloads or navigates.
 const CHECK_URL = '/up';
+const LOGO_URL = document.querySelector('meta[name="app-logo"]')?.content || '/logo.svg';
 const CHECK_TIMEOUT = 2500;
 const IDLE_INTERVAL = 1000;
 const HIDDEN_INTERVAL = 10000;
@@ -37,7 +38,7 @@ function buildOverlay() {
     overlay.hidden = true;
     overlay.innerHTML = `
         <div class="conn-card">
-            <img src="/logo.svg" alt="BAS World" class="conn-logo">
+            <img src="${LOGO_URL}" alt="BAS World" class="conn-logo">
             <div class="conn-spinner" aria-hidden="true"></div>
             <h2 class="conn-title"></h2>
             <p class="conn-text"></p>
@@ -101,10 +102,7 @@ async function check() {
     if (ok) {
         failures = 0;
         hide();
-        // Warm the logo so the overlay can show it even when the server is gone.
-new Image().src = '/logo.svg';
-
-schedule(IDLE_INTERVAL);
+        schedule(IDLE_INTERVAL);
         return;
     }
 
@@ -125,6 +123,6 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // Warm the logo so the overlay can show it even when the server is gone.
-new Image().src = '/logo.svg';
+new Image().src = LOGO_URL;
 
 schedule(IDLE_INTERVAL);

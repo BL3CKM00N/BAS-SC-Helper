@@ -1,6 +1,8 @@
 // Service worker: shows the offline screen when a page navigation cannot reach the server.
+// True only in local development (filled in by the server). The offline page then shows the dev markers.
+const DEV = __DEV__;
 const CACHE = 'bas-v5';
-const PRECACHE = ['/offline.html', '/logo.svg', '/favicon.svg', '/icons/icon-192.png'];
+const PRECACHE = ['/offline.html', '/logo.svg', '/favicon.svg', '/icons/icon-192.png', ...(DEV ? ['/logo-dev.svg'] : [])];
 const NAVIGATION_TIMEOUT = 10000;
 
 self.addEventListener('install', (event) => {
@@ -15,7 +17,15 @@ self.addEventListener('activate', (event) => {
     );
 });
 
-const offlinePage = () => caches.match('/offline.html');
+async function offlinePage() {
+    const cached = await caches.match('/offline.html');
+
+    if (!cached || !DEV) return cached;
+
+    const html = (await cached.text()).replace('data-app="bas-offline"', 'data-app="bas-offline" data-env="local"');
+
+    return new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+}
 
 // Proxy and CDN error pages (not our own) mean the app server is unreachable.
 const isGatewayError = (status) => [502, 503, 504].includes(status) || (status >= 520 && status <= 530);
