@@ -28,8 +28,8 @@ class SystemInfo extends Page
     {
         $beat = app(SystemHealth::class)->lastBeat();
 
-        return [
-            'App version' => (string) (config('app.version') ?: 'unknown'),
+        return array_filter([
+            'App version' => $this->version(),
             'Environment' => app()->environment(),
             'Laravel' => app()->version(),
             'PHP' => PHP_VERSION,
@@ -40,6 +40,29 @@ class SystemInfo extends Page
             'Mail' => (string) config('mail.default'),
             'Time zone' => (string) config('app.timezone'),
             'Scheduler last beat' => $beat ? $beat->format('d M Y H:i:s').' ('.$beat->diffForHumans().')' : 'never',
-        ];
+        ]);
+    }
+
+    /**
+     * The APP_VERSION environment variable, or the short git commit when the app runs from a checkout.
+     */
+    private function version(): ?string
+    {
+        if ($version = env('APP_VERSION')) {
+            return (string) $version;
+        }
+
+        $head = @file_get_contents(base_path('.git/HEAD'));
+
+        if ($head === false) {
+            return null;
+        }
+
+        $head = trim($head);
+        $commit = str_starts_with($head, 'ref: ')
+            ? @file_get_contents(base_path('.git/'.substr($head, 5)))
+            : $head;
+
+        return $commit ? substr(trim($commit), 0, 7) : null;
     }
 }
