@@ -132,4 +132,21 @@ class AdminTeamsTest extends TestCase
         $this->assertStringContainsString('--gray-900:oklch(0.268 ', $html, 'gray 900 is #262623, the colour of the app header and cards');
         $this->assertStringNotContainsString('--gray-950:oklch(0.141 ', $html, "Filament's default zinc is gone");
     }
+
+    public function test_the_admin_panel_has_an_app_style_bar_on_phones_only(): void
+    {
+        $html = $this->get('/admin')->assertOk()->getContent();
+
+        // The bar: the logo on the left and a menu button on the right that opens the sidebar.
+        $this->assertStringContainsString('<header class="bas-topbar"', $html);
+        $this->assertMatchesRegularExpression('/<a href="[^"]*\/admin" class="bas-topbar-logo">\s*<img src="[^"]*logo\.svg/', $html);
+        $this->assertStringContainsString('x-on:click="$store.sidebar.open($event.currentTarget)"', $html);
+        $this->assertStringContainsString('<span class="bas-sr-only">Menu</span>', $html);
+
+        // It only exists below the width where Filament shows its own sidebar, and has the colour of the sidebar.
+        $this->assertStringContainsString('.bas-topbar{display:none}', $html);
+        $this->assertStringContainsString('@media (max-width:1023.98px){.bas-topbar{position:sticky', $html);
+        $this->assertStringContainsString('background-color:var(--gray-900);border-bottom', $html);
+        $this->assertStringContainsString('.fi-layout-sidebar-toggle-btn-ctn{display:none}', $html, "Filament's floating menu icon is replaced by the bar");
+    }
 }

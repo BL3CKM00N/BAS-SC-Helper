@@ -43,8 +43,23 @@ class AdminPanelProvider extends PanelProvider
             ->favicon(asset('favicon.svg'))
             // No top bar: the logo sits at the top of the sidebar and the profile menu at the bottom of it.
             ->topbar(false)
-            // The sidebar gets the colour of the app header (gray 900) instead of the page colour.
-            ->renderHook(PanelsRenderHook::HEAD_END, fn (): string => '<style>.fi-sidebar{background-color:var(--gray-900);border-inline-end:1px solid rgb(255 255 255 / .08)}</style>')
+            // The sidebar gets the colour of the app header (gray 900) instead of the page colour. On a phone there is
+            // a bar like the app header, with the logo on the left and a button on the right that opens the sidebar.
+            ->renderHook(PanelsRenderHook::HEAD_END, fn (): string => '<style>'
+                .'.fi-sidebar{background-color:var(--gray-900);border-inline-end:1px solid rgb(255 255 255 / .08)}'
+                .'.bas-topbar{display:none}'
+                .'@media (max-width:1023.98px){'
+                .'.bas-topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:.75rem 1rem;background-color:var(--gray-900);border-bottom:1px solid rgb(255 255 255 / .1)}'
+                .'.bas-topbar-logo{display:flex;align-items:center}'
+                .'.bas-topbar-logo img{height:1.75rem;width:auto}'
+                .'.bas-topbar-button{display:flex;align-items:center;justify-content:center;width:2.5rem;height:2.5rem;margin-right:-.5rem;border:0;border-radius:.5rem;background:transparent;color:#fff;cursor:pointer}'
+                .'.bas-topbar-button:hover{background-color:rgb(255 255 255 / .06)}'
+                .'.bas-topbar-button svg{width:1.5rem;height:1.5rem}'
+                .'.bas-sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}'
+                .'.fi-layout-sidebar-toggle-btn-ctn{display:none}'
+                .'}'
+                .'</style>')
+            ->renderHook(PanelsRenderHook::BODY_START, fn (): string => view('filament.mobile-topbar')->render())
             ->darkMode(true, isForced: true)
             ->colors([
                 'primary' => Color::hex('#1da15e'),
