@@ -67,7 +67,7 @@ class PasswordSetupController extends Controller
      */
     private function ensureInviteIsOpen(User $user): void
     {
-        abort_if($user->invited_at === null, 403, 'This invitation was already used.');
+        abort_if($user->invited_at === null || $user->isDisabled(), 403, 'This invitation was already used.');
     }
 
     /**

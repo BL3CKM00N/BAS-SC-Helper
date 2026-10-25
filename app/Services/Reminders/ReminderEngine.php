@@ -159,6 +159,7 @@ class ReminderEngine
             ->whereNull('completed_at')
             ->whereNotNull('next_notify_at')
             ->where('next_notify_at', '<=', $now)
+            ->whereHas('user', fn ($query) => $query->whereNull('disabled_at'))
             ->whereHas('reminder', fn ($query) => $query->whereNull('archived_at')->whereNull('completed_at'))
             ->with(['reminder.team', 'user'])
             ->each(function (ReminderRecipient $recipient) use ($now, &$sent) {

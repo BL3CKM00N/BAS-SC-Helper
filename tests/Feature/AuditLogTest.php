@@ -76,7 +76,7 @@ class AuditLogTest extends TestCase
     public function test_admins_can_read_the_log_in_the_panel(): void
     {
         Filament::setCurrentPanel('admin');
-        $admin = User::factory()->create(['role_id' => Role::query()->where('name', Role::ADMIN)->value('id')]);
+        $admin = User::factory()->create(['role_id' => Role::query()->firstOrCreate(['name' => Role::ADMIN])->id]);
         Audit::record('user.created', 'Created the account of Pat', null, [], $admin);
 
         Livewire::actingAs($admin)

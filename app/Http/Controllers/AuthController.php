@@ -21,6 +21,14 @@ class AuthController extends Controller
                 ->withErrors(['email' => 'These credentials do not match our records.']);
         }
 
+        if (Auth::user()->isDisabled()) {
+            Auth::logout();
+
+            return back()
+                ->withInput($request->only('email', 'remember'))
+                ->withErrors(['email' => 'This account has been disabled. Ask an admin if you think that is a mistake.']);
+        }
+
         $request->session()->regenerate();
 
         return redirect()->intended(route('dashboard'));

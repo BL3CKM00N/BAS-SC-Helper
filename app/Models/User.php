@@ -20,7 +20,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use NotificationChannels\WebPush\HasPushSubscriptions;
 
-#[Fillable(['name', 'email', 'password', 'role_id', 'timezone', 'work_days', 'work_start', 'work_end', 'must_change_password', 'invited_at'])]
+#[Fillable(['name', 'email', 'password', 'role_id', 'timezone', 'work_days', 'work_start', 'work_end', 'must_change_password', 'invited_at', 'disabled_at', 'last_login_at', 'last_login_ip'])]
 #[Hidden(['password', 'remember_token'])]
 #[ObservedBy(UserObserver::class)]
 class User extends Authenticatable implements FilamentUser
@@ -50,7 +50,7 @@ class User extends Authenticatable implements FilamentUser
 
     public function canAccessPanel(Panel $panel): bool
     {
-        return $this->isAdmin();
+        return $this->isAdmin() && ! $this->isDisabled();
     }
 
     /**
@@ -100,6 +100,11 @@ class User extends Authenticatable implements FilamentUser
         return mb_strtoupper($letters);
     }
 
+    public function isDisabled(): bool
+    {
+        return $this->disabled_at !== null;
+    }
+
     public function isAdmin(): bool
     {
         return $this->role?->name === Role::ADMIN;
@@ -116,6 +121,8 @@ class User extends Authenticatable implements FilamentUser
             'email_verified_at' => 'datetime',
             'invited_at' => 'datetime',
             'must_change_password' => 'boolean',
+            'disabled_at' => 'datetime',
+            'last_login_at' => 'datetime',
             'password' => 'hashed',
         ];
     }

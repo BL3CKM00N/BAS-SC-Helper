@@ -21,7 +21,7 @@ class AdminDashboardTest extends TestCase
     {
         Filament::setCurrentPanel('admin');
 
-        return User::factory()->create(['role_id' => Role::query()->where('name', Role::ADMIN)->value('id')]);
+        return User::factory()->create(['role_id' => Role::query()->firstOrCreate(['name' => Role::ADMIN])->id]);
     }
 
     public function test_scheduler_is_stale_without_a_beat_and_alive_after_one(): void

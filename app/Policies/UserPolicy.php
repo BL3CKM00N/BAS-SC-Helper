@@ -3,10 +3,11 @@
 namespace App\Policies;
 
 use App\Models\User;
+use App\Services\Admin\AccountAdmin;
 
 /**
  * Only admins reach the admin panel (see User::canAccessPanel), so inside it the only
- * restriction is that nobody can delete their own account.
+ * restriction is that nobody can delete their own account or the last admin who can sign in.
  */
 class UserPolicy
 {
@@ -32,7 +33,7 @@ class UserPolicy
 
     public function delete(User $user, User $model): bool
     {
-        return $user->isAdmin() && ! $user->is($model);
+        return $user->isAdmin() && ! $user->is($model) && ! app(AccountAdmin::class)->isLastAdmin($model);
     }
 
     public function deleteAny(User $user): bool
