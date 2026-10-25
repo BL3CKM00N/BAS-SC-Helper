@@ -105,3 +105,107 @@ html[data-env='local'] .conn-overlay::after {
         -webkit-tap-highlight-color: transparent;
     }
 }
+
+/* Confirmation dialog (resources/js/confirm.js) */
+.app-dialog {
+    /* Tailwind's reset removes the margin that centres a modal dialog, so put it back. */
+    margin: auto;
+    width: min(26rem, calc(100vw - 2rem));
+    padding: 0;
+    border: 1px solid rgb(255 255 255 / 0.12);
+    border-radius: 1rem;
+    background: #262623;
+    color: #fff;
+    box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.6);
+}
+
+.app-dialog::backdrop {
+    background: rgb(0 0 0 / 0.6);
+    backdrop-filter: blur(2px);
+}
+
+.app-dialog[open] {
+    animation: dialog-in 0.15s ease-out;
+}
+
+.app-dialog-body {
+    padding: 1.5rem;
+}
+
+.app-dialog-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+}
+
+.app-dialog-text {
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    line-height: 1.5rem;
+    color: #b8bab8;
+    overflow-wrap: anywhere;
+}
+
+.app-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+}
+
+.app-dialog-cancel,
+.app-dialog-confirm {
+    border-radius: 0.5rem;
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+.app-dialog-cancel {
+    border: 1px solid rgb(255 255 255 / 0.15);
+}
+
+.app-dialog-cancel:hover {
+    background: rgb(255 255 255 / 0.05);
+}
+
+.app-dialog-confirm {
+    border: 0;
+    background: #1da15e;
+}
+
+.app-dialog-confirm:hover {
+    background: #178a4f;
+}
+
+.app-dialog-confirm.is-danger {
+    background: #dc2626;
+}
+
+.app-dialog-confirm.is-danger:hover {
+    background: #b91c1c;
+}
+
+.app-dialog button:focus-visible {
+    outline: 2px solid #7be0a8;
+    outline-offset: 2px;
+}
+
+@keyframes dialog-in {
+    from {
+        opacity: 0;
+        transform: translateY(8px) scale(0.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .app-dialog[open] {
+        animation: none;
+    }
+}

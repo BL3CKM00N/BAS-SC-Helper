@@ -42,7 +42,9 @@
                 <a href="{{ route('reminders.edit', $reminder) }}" class="rounded-lg border border-white/15 px-3 py-1.5 text-xs transition hover:bg-white/5">Edit</a>
             @endcan
             @can('delete', $reminder)
-                <form method="POST" action="{{ route('reminders.destroy', $reminder) }}" onsubmit="return confirm('Delete this reminder?')">
+                <form method="POST" action="{{ route('reminders.destroy', $reminder) }}"
+                    data-confirm="&quot;{{ $reminder->title }}&quot; will be deleted for good{{ $reminder->team ? ' for the whole team' : '' }}."
+                    data-confirm-title="Delete this reminder?" data-confirm-button="Delete" data-confirm-tone="danger">
                     @csrf
                     @method('DELETE')
                     <button type="submit" class="rounded-lg border border-white/15 px-3 py-1.5 text-xs text-red-300 transition hover:bg-red-500/10">Delete</button>

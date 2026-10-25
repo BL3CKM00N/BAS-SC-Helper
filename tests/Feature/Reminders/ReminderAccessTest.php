@@ -92,6 +92,18 @@ class ReminderAccessTest extends TestCase
             ->assertJsonPath('html', fn (string $html) => str_contains($html, 'Call the garage'));
     }
 
+    public function test_deleting_a_reminder_asks_for_confirmation_in_the_app_style(): void
+    {
+        $user = User::factory()->create();
+        $this->make(['created_by' => $user->id, 'title' => 'Old chore', 'due_at' => now()->addDays(2)]);
+
+        $this->actingAs($user)->get('/reminders')
+            ->assertOk()
+            ->assertSee('data-confirm-title="Delete this reminder?"', false)
+            ->assertSee('data-confirm-tone="danger"', false)
+            ->assertDontSee('onsubmit', false);
+    }
+
     public function test_skipping_asks_for_confirmation_but_done_and_snooze_do_not(): void
     {
         $user = User::factory()->create();
@@ -104,10 +116,16 @@ class ReminderAccessTest extends TestCase
         preg_match('/<form[^>]*reminders\/'.$reminder->id.'\/done[^>]*>/s', $html, $done);
         preg_match('/<form[^>]*reminders\/'.$reminder->id.'\/snooze[^>]*>/s', $html, $snooze);
 
-        $this->assertStringContainsString('confirm(', $skip[0]);
-        $this->assertStringContainsString('until the next working day', $skip[0]);
-        $this->assertStringNotContainsString('confirm(', $done[0]);
-        $this->assertStringNotContainsString('confirm(', $snooze[0]);
+        $this->assertStringContainsString('data-confirm=', $skip[0]);
+        $this->assertStringContainsString('hidden until your next working day', $skip[0]);
+        $this->assertStringContainsString('data-confirm-button="Skip today"', $skip[0]);
+        $this->assertStringNotContainsString('data-confirm', $done[0]);
+        $this->assertStringNotContainsString('data-confirm', $snooze[0]);
+        $this->assertStringNotContainsString('onsubmit', $html, 'no browser confirm prompts');
+
+        // The form tag must end right after its attributes: the next thing in the page is the CSRF field.
+        $this->assertMatchesRegularExpression('/reminders\/'.$reminder->id.'\/skip[^>]*>\s*<input type="hidden" name="_token"/', $html);
+        $this->assertStringNotContainsString('title) }}', $html);
     }
 
     // ------------------------------------------------------------ creating
