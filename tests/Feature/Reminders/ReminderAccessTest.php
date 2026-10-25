@@ -93,6 +93,24 @@ class ReminderAccessTest extends TestCase
             ->assertJsonPath('html', fn (string $html) => str_contains($html, 'Call the garage'));
     }
 
+    public function test_skipping_asks_for_confirmation_but_done_and_snooze_do_not(): void
+    {
+        $user = User::factory()->create();
+        $reminder = $this->make(['created_by' => $user->id, 'title' => 'Call the "garage"', 'due_at' => now()->addMinutes(10)]);
+        $reminder->recipients()->update(['pending_since' => now()]);
+
+        $html = $this->actingAs($user)->getJson('/reminders/due')->json('html');
+
+        preg_match('/<form[^>]*reminders\/'.$reminder->id.'\/skip[^>]*>/s', $html, $skip);
+        preg_match('/<form[^>]*reminders\/'.$reminder->id.'\/done[^>]*>/s', $html, $done);
+        preg_match('/<form[^>]*reminders\/'.$reminder->id.'\/snooze[^>]*>/s', $html, $snooze);
+
+        $this->assertStringContainsString('confirm(', $skip[0]);
+        $this->assertStringContainsString('until the next working day', $skip[0]);
+        $this->assertStringNotContainsString('confirm(', $done[0]);
+        $this->assertStringNotContainsString('confirm(', $snooze[0]);
+    }
+
     // ------------------------------------------------------------ creating
 
     private function deadline(array $overrides = []): array

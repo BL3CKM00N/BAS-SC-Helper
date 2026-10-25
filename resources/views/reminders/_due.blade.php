@@ -47,7 +47,8 @@
                 @endforeach
             </form>
 
-            <form method="POST" action="{{ route('reminders.skip', $reminder) }}">
+            <form method="POST" action="{{ route('reminders.skip', $reminder) }}"
+                onsubmit="return confirm('Skip &quot;{{ addslashes($reminder->title) }}&quot; until the next working day?')">
                 @csrf
                 <button type="submit" class="rounded-lg border border-white/15 px-2.5 py-1.5 text-xs text-[#b8bab8] transition hover:bg-white/5">Skip today</button>
             </form>

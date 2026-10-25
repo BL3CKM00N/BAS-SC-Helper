@@ -64,6 +64,9 @@ if (container) {
     }
 
     container.addEventListener('submit', async (event) => {
+        // A form can cancel itself, for example when the person declines the "Skip today" confirmation.
+        if (event.defaultPrevented) return;
+
         event.preventDefault();
 
         const form = event.target;
