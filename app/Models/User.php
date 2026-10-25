@@ -22,6 +22,18 @@ class User extends Authenticatable implements FilamentUser
     use HasFactory, Notifiable;
 
     /**
+     * The same defaults as the database, so a user that was just created has them too.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'timezone' => 'Europe/Amsterdam',
+        'work_days' => '1,2,3,4,5',
+        'work_start' => '08:00',
+        'work_end' => '17:30',
+    ];
+
+    /**
      * @return BelongsTo<Role, $this>
      */
     public function role(): BelongsTo
