@@ -1,4 +1,5 @@
 import './pwa';
+import './menu';
 import './confirm';
 import './connection';
 import './due-now';
