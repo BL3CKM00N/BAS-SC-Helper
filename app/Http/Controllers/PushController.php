@@ -4,13 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\ReminderRecipient;
 use App\Notifications\ReminderDue;
+use App\Notifications\TestPush;
 use App\Services\Reminders\ReminderEngine;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Notifications\Notification;
-use NotificationChannels\WebPush\WebPushChannel;
-use NotificationChannels\WebPush\WebPushMessage;
 
 class PushController extends Controller
 {
@@ -48,24 +46,7 @@ class PushController extends Controller
 
         abort_unless($user->pushSubscriptions()->exists(), 422, 'Turn on notifications on this device first.');
 
-        $user->notify(new class extends Notification
-        {
-            /** @return list<class-string> */
-            public function via(): array
-            {
-                return [WebPushChannel::class];
-            }
-
-            public function toWebPush(): WebPushMessage
-            {
-                return (new WebPushMessage)
-                    ->title('Notifications are on')
-                    ->icon('/icons/icon-192.png')
-                    ->body('You will get your reminders here.')
-                    ->tag('test')
-                    ->data(['url' => route('reminders.index')]);
-            }
-        });
+        $user->notify(new TestPush);
 
         return response()->json(['status' => 'sent']);
     }
