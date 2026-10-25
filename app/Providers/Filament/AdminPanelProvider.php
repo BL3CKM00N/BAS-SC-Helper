@@ -40,6 +40,8 @@ class AdminPanelProvider extends PanelProvider
                     ->sort(-10),
             ])
             ->favicon(asset('favicon.svg'))
+            // No top bar: the logo sits at the top of the sidebar and the profile menu at the bottom of it.
+            ->topbar(false)
             ->darkMode(true, isForced: true)
             ->colors([
                 'primary' => Color::hex('#1da15e'),

@@ -109,4 +109,16 @@ class AdminTeamsTest extends TestCase
         Role::query()->firstOrCreate(['name' => Role::TEAM_MANAGER]);
         $this->get('/admin/users')->assertOk();
     }
+
+    public function test_the_admin_panel_has_no_top_bar_and_keeps_the_logo_and_profile_menu_in_the_sidebar(): void
+    {
+        $this->assertFalse(Filament::getPanel('admin')->hasTopbar());
+
+        $html = $this->get('/admin')->assertOk()->getContent();
+
+        $this->assertStringNotContainsString('fi-topbar', $html);
+        $this->assertStringContainsString('fi-sidebar', $html);
+        $this->assertStringContainsString('fi-user-menu', $html);
+        $this->assertStringContainsString('/logo.svg', $html);
+    }
 }
