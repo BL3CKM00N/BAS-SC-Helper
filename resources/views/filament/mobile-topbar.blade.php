@@ -2,7 +2,7 @@
      On a computer the panel has no top bar (see the styles in AdminPanelProvider), the sidebar holds the logo and the profile menu. --}}
 <header class="bas-topbar" x-data="{}" x-bind:inert="$store.sidebar.isOpenMobile">
     <a href="{{ url('/admin') }}" class="bas-topbar-logo">
-        <img src="{{ asset('logo.svg') }}" alt="BAS World">
+        <img src="{{ asset(app()->environment('local') ? 'logo-dev.svg' : 'logo.svg') }}" alt="BAS World">
     </a>
 
     <button type="button" class="bas-topbar-button" aria-controls="fi-main-sidebar" x-bind:aria-expanded="$store.sidebar.isOpen" x-on:click="$store.sidebar.open($event.currentTarget)">

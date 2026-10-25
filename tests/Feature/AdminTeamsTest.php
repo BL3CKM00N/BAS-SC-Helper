@@ -149,4 +149,28 @@ class AdminTeamsTest extends TestCase
         $this->assertStringContainsString('background-color:var(--gray-900);border-bottom', $html);
         $this->assertStringContainsString('.fi-layout-sidebar-toggle-btn-ctn{display:none}', $html, "Filament's floating menu icon is replaced by the bar");
     }
+
+    public function test_the_admin_panel_shows_the_development_markers_when_running_locally(): void
+    {
+        $this->app['env'] = 'local';
+
+        $html = $this->get('/admin/users')->assertOk()->getContent();
+
+        $this->assertMatchesRegularExpression('/<title>[^<]*BAS SC Helper \[DEV\][^<]*<\/title>/', $html);
+        $this->assertStringContainsString('<footer class="bas-dev-footer">Development environment</footer>', $html);
+        $this->assertStringContainsString('logo-dev.svg', $html, 'the sidebar logo has the red DEV label');
+        $this->assertMatchesRegularExpression('/<header class="bas-topbar".*?logo-dev\.svg/s', $html, 'so does the logo in the phone bar');
+    }
+
+    public function test_the_admin_panel_has_no_development_markers_in_production(): void
+    {
+        $this->app['env'] = 'production';
+
+        $html = $this->get('/admin/users')->assertOk()->getContent();
+
+        $this->assertStringNotContainsString('[DEV]', $html);
+        $this->assertStringNotContainsString('<footer class="bas-dev-footer">', $html);
+        $this->assertStringNotContainsString('logo-dev.svg', $html);
+        $this->assertStringContainsString('/logo.svg', $html);
+    }
 }

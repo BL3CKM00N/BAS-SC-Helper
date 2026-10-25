@@ -30,8 +30,9 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             // No login of its own: unauthenticated visitors are sent to the login card on "/".
-            ->brandName('BAS SC Helper')
-            ->brandLogo(fn () => asset('logo.svg'))
+            // In local development the title ends with [DEV] and the logo has the red DEV label, like the app itself.
+            ->brandName(fn (): string => 'BAS SC Helper'.(app()->environment('local') ? ' [DEV]' : ''))
+            ->brandLogo(fn () => asset(app()->environment('local') ? 'logo-dev.svg' : 'logo.svg'))
             ->brandLogoHeight('1.75rem')
             ->homeUrl('/dashboard')
             ->navigationItems([
@@ -58,8 +59,12 @@ class AdminPanelProvider extends PanelProvider
                 .'.bas-sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}'
                 .'.fi-layout-sidebar-toggle-btn-ctn{display:none}'
                 .'}'
+                .'.bas-dev-footer{position:fixed;inset-inline:0;bottom:0;z-index:40;padding:.5rem 0;text-align:center;font:800 .75rem system-ui,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#ef4444;background-color:rgb(29 29 26 / .9);pointer-events:none}'
+                .'@media (min-width:1024px){.bas-dev-footer{inset-inline-start:var(--sidebar-width,20rem)}}'
                 .'</style>')
             ->renderHook(PanelsRenderHook::BODY_START, fn (): string => view('filament.mobile-topbar')->render())
+            // The red development footer of the app, next to the sidebar on a computer.
+            ->renderHook(PanelsRenderHook::BODY_END, fn (): string => app()->environment('local') ? '<footer class="bas-dev-footer">Development environment</footer>' : '')
             ->darkMode(true, isForced: true)
             ->colors([
                 'primary' => Color::hex('#1da15e'),
