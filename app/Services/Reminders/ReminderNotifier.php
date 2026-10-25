@@ -4,6 +4,7 @@ namespace App\Services\Reminders;
 
 use App\Models\ReminderRecipient;
 use App\Notifications\ReminderDue;
+use App\Services\Admin\SystemHealth;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -22,6 +23,7 @@ class ReminderNotifier
             $recipient->user->notify(new ReminderDue($recipient));
         } catch (Throwable $exception) {
             // A broken push service must never stop the other reminders from going out.
+            app(SystemHealth::class)->pushFailed($exception->getMessage());
             Log::warning('Could not send a reminder push notification.', ['recipient' => $recipient->getKey(), 'error' => $exception->getMessage()]);
         }
     }
