@@ -135,6 +135,7 @@ Nothing here is promised yet. The list is filled in as the service coordinator w
 - [x] Reminders: deadlines, repeating reminders, work hours, team reminders and push notifications
 - [ ] Map the rest of the service coordinator workflow and decide the next feature
 - [x] Login, roles and a Filament admin panel for admins
+- [x] Admin panel: dashboard and system health, user management, audit log, maintenance mode, announcements, bulk tools and app defaults
 - [ ] Sign in with Microsoft (only `@basworld.com` accounts)
 
 ## Conventions
