@@ -1,4 +1,5 @@
 # On every deploy: run the migrations, make sure the roles and the admin account exist (the seeder is
-# safe to repeat and never overwrites a changed password), publish the Filament assets, then serve on port 80.
+# safe to repeat and never overwrites a changed password), publish the Filament assets, then start the
+# scheduler in the background (it runs `reminders:send` every minute) and serve the app on port 80.
 [start]
-cmd = "php artisan migrate --force; php artisan db:seed --force; php artisan filament:assets; PHP_CLI_SERVER_WORKERS=6 php artisan serve --host=0.0.0.0 --port=80 --no-reload"
+cmd = "php artisan migrate --force; php artisan db:seed --force; php artisan filament:assets; php artisan schedule:work > /dev/null & PHP_CLI_SERVER_WORKERS=6 php artisan serve --host=0.0.0.0 --port=80 --no-reload"
