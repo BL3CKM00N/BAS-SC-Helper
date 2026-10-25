@@ -2,20 +2,20 @@
     @php($totals = $this->totals())
     @php($failure = $this->lastFailure())
 
-    <div class="grid gap-4 sm:grid-cols-3">
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem">
         <x-filament::section>
-            <p class="text-sm text-gray-500 dark:text-gray-400">People who get notifications</p>
-            <p class="mt-1 text-2xl font-semibold text-gray-950 dark:text-white">{{ $totals['reachable'] }} of {{ $totals['people'] }}</p>
+            <p style="font-size:.875rem;color:var(--gray-400)">People who get notifications</p>
+            <p style="margin-top:.25rem;font-size:1.5rem;font-weight:600;color:#fff">{{ $totals['reachable'] }} of {{ $totals['people'] }}</p>
         </x-filament::section>
         <x-filament::section>
-            <p class="text-sm text-gray-500 dark:text-gray-400">Devices</p>
-            <p class="mt-1 text-2xl font-semibold text-gray-950 dark:text-white">{{ $totals['devices'] }}</p>
+            <p style="font-size:.875rem;color:var(--gray-400)">Devices</p>
+            <p style="margin-top:.25rem;font-size:1.5rem;font-weight:600;color:#fff">{{ $totals['devices'] }}</p>
         </x-filament::section>
         <x-filament::section>
-            <p class="text-sm text-gray-500 dark:text-gray-400">Failed pushes</p>
-            <p class="mt-1 text-2xl font-semibold text-gray-950 dark:text-white">{{ $failure['count'] ?? 0 }}</p>
+            <p style="font-size:.875rem;color:var(--gray-400)">Failed pushes</p>
+            <p style="margin-top:.25rem;font-size:1.5rem;font-weight:600;color:#fff">{{ $failure['count'] ?? 0 }}</p>
             @if ($failure)
-                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Last {{ $failure['at']->diffForHumans() }}: {{ \Illuminate\Support\Str::limit($failure['reason'], 90) }}</p>
+                <p style="margin-top:.25rem;font-size:.75rem;color:var(--gray-400)">Last {{ $failure['at']->diffForHumans() }}: {{ \Illuminate\Support\Str::limit($failure['reason'], 90) }}</p>
             @endif
         </x-filament::section>
     </div>

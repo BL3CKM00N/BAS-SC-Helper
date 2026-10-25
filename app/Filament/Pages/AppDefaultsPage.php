@@ -60,6 +60,7 @@ class AppDefaultsPage extends Page implements HasSchemas
                         CheckboxList::make('work_days')
                             ->options([1 => 'Monday', 2 => 'Tuesday', 3 => 'Wednesday', 4 => 'Thursday', 5 => 'Friday', 6 => 'Saturday', 7 => 'Sunday'])
                             ->columns(4)
+                            ->gridDirection('row')
                             ->required()
                             ->minItems(1),
                         TimePicker::make('work_start')->seconds(false)->required(),

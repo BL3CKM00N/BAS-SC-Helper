@@ -40,7 +40,7 @@ class MaintenancePage extends Page implements HasSchemas
         $this->form->fill([
             'on' => $maintenance->isOn(),
             'message' => $maintenance->isOn() ? $maintenance->message() : null,
-            'back_at' => $maintenance->backAt(),
+            'back_at' => $maintenance->isOn() ? $maintenance->backAt() : null,
         ]);
     }
 
