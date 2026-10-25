@@ -121,4 +121,15 @@ class AdminTeamsTest extends TestCase
         $this->assertStringContainsString('fi-user-menu', $html);
         $this->assertStringContainsString('/logo.svg', $html);
     }
+
+    public function test_the_admin_panel_uses_the_colours_of_the_app(): void
+    {
+        $html = $this->get('/admin')->assertOk()->getContent();
+
+        // The sidebar takes the colour of the app header (gray 900) and the page the app background (gray 950).
+        $this->assertStringContainsString('.fi-sidebar{background-color:var(--gray-900)', $html);
+        $this->assertStringContainsString('--gray-950:oklch(0.23 ', $html, 'gray 950 is #1d1d1a, the background of the app');
+        $this->assertStringContainsString('--gray-900:oklch(0.268 ', $html, 'gray 900 is #262623, the colour of the app header and cards');
+        $this->assertStringNotContainsString('--gray-950:oklch(0.141 ', $html, "Filament's default zinc is gone");
+    }
 }

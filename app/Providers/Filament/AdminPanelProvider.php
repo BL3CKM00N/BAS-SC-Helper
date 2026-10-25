@@ -12,6 +12,7 @@ use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\View\PanelsRenderHook;
 use Filament\Widgets\AccountWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -42,9 +43,26 @@ class AdminPanelProvider extends PanelProvider
             ->favicon(asset('favicon.svg'))
             // No top bar: the logo sits at the top of the sidebar and the profile menu at the bottom of it.
             ->topbar(false)
+            // The sidebar gets the colour of the app header (gray 900) instead of the page colour.
+            ->renderHook(PanelsRenderHook::HEAD_END, fn (): string => '<style>.fi-sidebar{background-color:var(--gray-900);border-inline-end:1px solid rgb(255 255 255 / .08)}</style>')
             ->darkMode(true, isForced: true)
             ->colors([
                 'primary' => Color::hex('#1da15e'),
+                // Warm greys that match the app: 950 is the page background of the app (#1d1d1a) and
+                // 900 the colour of its header and cards (#262623), which the panel uses for its page and sidebar.
+                'gray' => [
+                    50 => '#f6f6f5',
+                    100 => '#ebebe9',
+                    200 => '#d6d7d5',
+                    300 => '#b8bab8',
+                    400 => '#9a9b97',
+                    500 => '#7b7c77',
+                    600 => '#5d5e59',
+                    700 => '#42423d',
+                    800 => '#32322e',
+                    900 => '#262623',
+                    950 => '#1d1d1a',
+                ],
             ])
             ->userMenuItems([
                 Action::make('account')
