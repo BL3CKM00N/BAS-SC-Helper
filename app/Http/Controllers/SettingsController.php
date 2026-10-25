@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\Account\UserSessions;
 use DateTimeZone;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -10,10 +11,11 @@ use Illuminate\View\View;
 
 class SettingsController extends Controller
 {
-    public function edit(Request $request): View
+    public function edit(Request $request, UserSessions $sessions): View
     {
         return view('settings.edit', [
             'user' => $request->user(),
+            'devices' => $sessions->for($request->user(), $request->session()->getId()),
             'timezones' => DateTimeZone::listIdentifiers(),
             'days' => [1 => 'Monday', 2 => 'Tuesday', 3 => 'Wednesday', 4 => 'Thursday', 5 => 'Friday', 6 => 'Saturday', 7 => 'Sunday'],
         ]);

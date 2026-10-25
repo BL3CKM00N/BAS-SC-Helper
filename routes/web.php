@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AccountSecurityController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PasswordSetupController;
 use App\Http\Controllers\PushController;
@@ -83,6 +84,11 @@ Route::middleware(['auth', 'password.chosen'])->group(function () {
 
     Route::get('/settings', [SettingsController::class, 'edit'])->name('settings.edit');
     Route::patch('/settings', [SettingsController::class, 'update'])->name('settings.update');
+
+    Route::put('/settings/password', [AccountSecurityController::class, 'changePassword'])->name('settings.password');
+    Route::delete('/settings/devices', [AccountSecurityController::class, 'revokeOthers'])->name('settings.devices.destroy-others');
+    Route::post('/settings/devices/sign-out-everywhere', [AccountSecurityController::class, 'logoutEverywhere'])->name('settings.devices.sign-out-everywhere');
+    Route::delete('/settings/devices/{handle}', [AccountSecurityController::class, 'revoke'])->where('handle', '[a-f0-9]{32}')->name('settings.devices.destroy');
 
     Route::get('/teams', [TeamController::class, 'index'])->name('teams.index');
     Route::get('/teams/{team}', [TeamController::class, 'show'])->name('teams.show');
