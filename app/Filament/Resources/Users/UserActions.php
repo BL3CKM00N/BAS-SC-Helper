@@ -92,7 +92,7 @@ class UserActions
     {
         return Action::make('signOut')
             ->label('Sign out everywhere')
-            ->icon(Heroicon::ArrowRightOnRectangle)
+            ->icon(Heroicon::ArrowLeftStartOnRectangle)
             ->requiresConfirmation()
             ->visible(fn (User $record): bool => ! $record->isDisabled())
             ->action(function (User $record, AccountAdmin $admin): void {

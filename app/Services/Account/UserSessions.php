@@ -74,6 +74,49 @@ class UserSessions
     }
 
     /**
+     * Every signed-in session of every user, for the admin panel. Keyed by handle, never by session id.
+     *
+     * @return Collection<string, array<string, mixed>>
+     */
+    public function everyone(string $currentId): Collection
+    {
+        $users = User::query()->whereIn('id', DB::table('sessions')->whereNotNull('user_id')->pluck('user_id'))->get()->keyBy('id');
+
+        return DB::table('sessions')
+            ->whereNotNull('user_id')
+            ->where('last_activity', '>', now()->subMinutes((int) config('session.lifetime'))->getTimestamp())
+            ->orderByDesc('last_activity')
+            ->get()
+            ->mapWithKeys(fn ($row) => [$this->handle($row->id) => DeviceInfo::parse($row->user_agent) + [
+                'user_id' => $row->user_id,
+                'user' => $users[$row->user_id]->name ?? 'Unknown',
+                'email' => $users[$row->user_id]->email ?? '',
+                'current' => hash_equals($currentId, $row->id),
+                'ip' => $row->ip_address,
+                'last_active' => CarbonImmutable::createFromTimestampUTC($row->last_activity),
+            ]]);
+    }
+
+    /**
+     * End any session by its handle (admin use). Returns the user it belonged to, or null when it no longer exists.
+     */
+    public function revokeHandle(string $handle, string $currentId): ?User
+    {
+        $row = DB::table('sessions')
+            ->whereNotNull('user_id')
+            ->get(['id', 'user_id'])
+            ->first(fn ($row) => hash_equals($this->handle($row->id), $handle));
+
+        if ($row === null || hash_equals($currentId, $row->id)) {
+            return null;
+        }
+
+        DB::table('sessions')->where('id', $row->id)->delete();
+
+        return User::query()->find($row->user_id);
+    }
+
+    /**
      * Invalidate every "stay signed in" cookie of the user.
      */
     public function rotateRememberToken(User $user): void
