@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Observers\UserObserver;
+use App\Services\Admin\AppDefaults;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Database\Factories\UserFactory;
@@ -39,6 +40,18 @@ class User extends Authenticatable implements FilamentUser
         'work_start' => '08:00',
         'work_end' => '17:30',
     ];
+
+    /**
+     * New accounts start with the defaults an admin chose (work hours and time zone).
+     *
+     * @param  array<string, mixed>  $attributes
+     */
+    public function __construct(array $attributes = [])
+    {
+        $this->attributes = array_merge($this->attributes, app(AppDefaults::class)->forUser());
+
+        parent::__construct($attributes);
+    }
 
     /**
      * @return BelongsTo<Role, $this>

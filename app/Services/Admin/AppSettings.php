@@ -14,13 +14,20 @@ class AppSettings
 {
     private const CACHE_KEY = 'app-settings';
 
+    /** @var array<string, mixed>|null */
+    private ?array $loaded = null;
+
     /**
      * @return array<string, mixed>
      */
     public function all(): array
     {
+        if ($this->loaded !== null) {
+            return $this->loaded;
+        }
+
         try {
-            return Cache::rememberForever(self::CACHE_KEY, fn () => AppSetting::query()->pluck('value', 'key')->all());
+            return $this->loaded = Cache::rememberForever(self::CACHE_KEY, fn () => AppSetting::query()->pluck('value', 'key')->all());
         } catch (Throwable) {
             // Before the migrations ran there is no table (or cache table) yet: act as if nothing was set.
             return [];
@@ -37,6 +44,7 @@ class AppSettings
         AppSetting::query()->updateOrCreate(['key' => $key], ['value' => $value]);
 
         Cache::forget(self::CACHE_KEY);
+        $this->loaded = null;
     }
 
     /**
@@ -54,5 +62,6 @@ class AppSettings
         AppSetting::query()->whereKey($key)->delete();
 
         Cache::forget(self::CACHE_KEY);
+        $this->loaded = null;
     }
 }

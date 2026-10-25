@@ -5,6 +5,7 @@ namespace App\Services\Teams;
 use App\Models\Role;
 use App\Models\Team;
 use App\Models\User;
+use App\Services\Admin\AppDefaults;
 use App\Services\Admin\Audit;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -29,7 +30,11 @@ class TeamManagement
         }
 
         return DB::transaction(function () use ($user) {
-            $team = Team::query()->create(['name' => $this->freeName($user->name."'s team"), 'manager_id' => $user->getKey()]);
+            $team = Team::query()->create([
+                'name' => $this->freeName($user->name."'s team"),
+                'manager_id' => $user->getKey(),
+                'members_can_create' => app(AppDefaults::class)->membersCanCreate(),
+            ]);
             $team->users()->attach($user);
             Audit::record('team.created', 'Created the team '.$team->name, $team);
 
