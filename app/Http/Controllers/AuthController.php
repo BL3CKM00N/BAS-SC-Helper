@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\Admin\Maintenance;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -27,6 +28,14 @@ class AuthController extends Controller
             return back()
                 ->withInput($request->only('email', 'remember'))
                 ->withErrors(['email' => 'This account has been disabled. Ask an admin if you think that is a mistake.']);
+        }
+
+        if (app(Maintenance::class)->isOn() && ! Auth::user()->isAdmin()) {
+            Auth::logout();
+
+            return back()
+                ->withInput($request->only('email', 'remember'))
+                ->withErrors(['email' => 'Only admins can sign in during maintenance. '.app(Maintenance::class)->textFor(null)]);
         }
 
         $request->session()->regenerate();

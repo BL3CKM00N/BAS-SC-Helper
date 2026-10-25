@@ -9,6 +9,10 @@
 
             <h1 class="text-center text-lg font-medium">Sign in</h1>
 
+            @if (app(\App\Services\Admin\Maintenance::class)->isOn())
+                <p role="status" class="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">Maintenance: {{ app(\App\Services\Admin\Maintenance::class)->textFor(null) }} Only admins can sign in right now.</p>
+            @endif
+
             <form method="POST" action="{{ route('login.store') }}" class="mt-6 space-y-4">
                 @csrf
 

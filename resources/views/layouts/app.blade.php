@@ -18,7 +18,7 @@
         @fonts
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body class="min-h-screen bg-[#1d1d1a] font-sans text-white antialiased @yield('body-class', 'flex items-center justify-center p-6')">
+    <body class="min-h-screen bg-[#1d1d1a] font-sans text-white antialiased @yield('body-class', 'flex items-center justify-center p-6')" @yield('body-attrs') @if (auth()->check() && ! auth()->user()->isAdmin()) data-audience="member" @endif>
         @yield('content')
 
         @if (app()->environment('local'))

@@ -15,6 +15,10 @@ const MESSAGES = {
         title: 'No internet connection',
         text: "Connect to Wi-Fi or mobile data to use BAS SC Helper. This screen disappears when you're back online.",
     },
+    maintenance: {
+        title: 'Under maintenance',
+        text: 'BAS SC Helper is being worked on. This screen disappears when we are done.',
+    },
     server: {
         title: "Can't reach the server",
         text: "The server isn't responding right now. We keep checking and will let you back in automatically.",
@@ -48,11 +52,11 @@ function buildOverlay() {
     document.body.appendChild(overlay);
 }
 
-function show(kind) {
+function show(kind, text) {
     if (!overlay) buildOverlay();
     clearTimeout(hideTimer);
     titleEl.textContent = MESSAGES[kind].title;
-    textEl.textContent = MESSAGES[kind].text;
+    textEl.textContent = text || MESSAGES[kind].text;
 
     if (overlay.hidden) {
         shownAt = Date.now();
@@ -78,9 +82,10 @@ async function ping() {
 
     try {
         const response = await fetch(`${CHECK_URL}?_=${Date.now()}`, { cache: 'no-store', signal: controller.signal });
-        return response.ok;
+        const maintenance = response.headers.get('X-Maintenance');
+        return { ok: response.ok, maintenance: maintenance === null ? null : decodeURIComponent(maintenance) };
     } catch (error) {
-        return false;
+        return { ok: false, maintenance: null };
     } finally {
         clearTimeout(timer);
     }
@@ -96,13 +101,30 @@ async function check() {
     if (checking) return;
     checking = true;
 
-    const ok = await ping();
+    const { ok, maintenance } = await ping();
     checking = false;
+
+    // The maintenance page itself waits for the app to come back, then opens it.
+    const onMaintenancePage = document.body.dataset.maintenance === '1';
+
+    // Only people who are locked out get the notice (the login page and the admin panel mark themselves otherwise).
+    const lockedOut = document.body.dataset.audience === 'member';
+
+    if (ok && maintenance !== null && lockedOut && !onMaintenancePage) {
+        failures = 0;
+        show('maintenance', maintenance);
+        schedule(DOWN_INTERVAL);
+        return;
+    }
 
     if (ok) {
         failures = 0;
+        if (onMaintenancePage && maintenance === null) {
+            location.replace('/');
+            return;
+        }
         hide();
-        schedule(IDLE_INTERVAL);
+        schedule(onMaintenancePage ? 5000 : IDLE_INTERVAL);
         return;
     }
 

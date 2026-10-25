@@ -4,6 +4,7 @@ namespace App\Providers\Filament;
 
 use App\Filament\Widgets\NeedsAttention;
 use App\Filament\Widgets\SystemHealthOverview;
+use App\Services\Admin\Maintenance;
 use Filament\Actions\Action;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -65,6 +66,9 @@ class AdminPanelProvider extends PanelProvider
                 .'.bas-dev-footer{position:fixed;inset-inline:0;bottom:0;z-index:40;padding:.5rem 0;text-align:center;font:800 .75rem system-ui,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#ef4444;background-color:rgb(29 29 26 / .9);pointer-events:none}'
                 .'@media (min-width:1024px){.bas-dev-footer{inset-inline-start:var(--sidebar-width,20rem)}}'
                 .'</style>')
+            ->renderHook(PanelsRenderHook::PAGE_START, fn (): string => app(Maintenance::class)->isOn()
+                ? '<div style="margin-bottom:1rem;border-radius:.5rem;background:rgba(245,158,11,.15);padding:.5rem 1rem;color:#fde68a;font-size:.875rem">Maintenance mode is on: only admins can use the app right now.</div>'
+                : '')
             ->renderHook(PanelsRenderHook::BODY_START, fn (): string => view('filament.mobile-topbar')->render())
             // The red development footer of the app, next to the sidebar on a computer.
             ->renderHook(PanelsRenderHook::BODY_END, fn (): string => app()->environment('local') ? '<footer class="bas-dev-footer">Development environment</footer>' : '')

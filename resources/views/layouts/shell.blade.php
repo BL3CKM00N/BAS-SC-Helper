@@ -79,6 +79,9 @@
             </div>
         </div>
     </header>
+    @if (app(\App\Services\Admin\Maintenance::class)->isOn())
+        <div role="status" class="bg-amber-500/15 px-4 py-2 text-center text-sm text-amber-200">Maintenance mode is on: only admins can use the app right now.</div>
+    @endif
 
     <main class="mx-auto w-full max-w-6xl flex-1 px-4 py-8 pb-16">
         @if (session('status'))
