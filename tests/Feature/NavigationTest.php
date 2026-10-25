@@ -82,4 +82,33 @@ class NavigationTest extends TestCase
         $this->actingAs(User::factory()->admin()->create())->get('/dashboard')->assertSee('Admin');
         $this->actingAs(User::factory()->create())->get('/dashboard')->assertSee('User');
     }
+
+    public function test_the_account_links_in_the_hamburger_menu_are_folded_into_one_row(): void
+    {
+        $html = $this->actingAs(User::factory()->create(['name' => 'Marian Manager', 'email' => 'marian@example.com']))->get('/dashboard')->getContent();
+
+        $this->assertMatchesRegularExpression('/<button[^>]*data-account-toggle[^>]*aria-expanded="false"[^>]*aria-controls="account-section"/s', $html);
+        $this->assertMatchesRegularExpression('/<div id="account-section" hidden/', $html, 'the links start folded');
+
+        preg_match('/<div id="account-section".*?<\/header>/s', $html, $section);
+        foreach (['Profile', 'Notifications', 'Work hours', 'Security', 'Sign out'] as $item) {
+            $this->assertStringContainsString($item, $section[0], $item.' is inside the folded section');
+        }
+
+        preg_match('/<button[^>]*data-account-toggle.*?<\/button>/s', $html, $row);
+        $this->assertStringContainsString('Marian Manager', $row[0]);
+        $this->assertStringContainsString('marian@example.com', $row[0]);
+        $this->assertStringContainsString('MM', $row[0]);
+    }
+
+    public function test_the_folded_row_is_highlighted_on_an_account_page(): void
+    {
+        $user = User::factory()->create();
+
+        preg_match('/<button[^>]*data-account-toggle[^>]*class="([^"]*)"/s', $this->actingAs($user)->get('/account/profile')->getContent(), $onAccount);
+        preg_match('/<button[^>]*data-account-toggle[^>]*class="([^"]*)"/s', $this->actingAs($user)->get('/dashboard')->getContent(), $elsewhere);
+
+        $this->assertStringContainsString('bg-white/10', $onAccount[1]);
+        $this->assertStringNotContainsString('bg-white/10', $elsewhere[1]);
+    }
 }

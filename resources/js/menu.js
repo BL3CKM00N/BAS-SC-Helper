@@ -33,9 +33,25 @@ function bind(button, panel, apply) {
 const menuButton = document.querySelector('[data-menu-button]');
 const profileButton = document.querySelector('[data-profile-button]');
 
+// The account links inside the hamburger menu are folded into one row.
+const accountToggle = document.querySelector('[data-account-toggle]');
+const accountSection = accountToggle && document.getElementById(accountToggle.getAttribute('aria-controls'));
+
+function foldAccount(open) {
+    if (!accountToggle || !accountSection) return;
+
+    accountToggle.setAttribute('aria-expanded', String(open));
+    accountSection.hidden = !open;
+}
+
+accountToggle?.addEventListener('click', () => foldAccount(accountToggle.getAttribute('aria-expanded') !== 'true'));
+
 bind(menuButton, menuButton && document.getElementById(menuButton.getAttribute('aria-controls')), function (open) {
     // On a phone the menu is hidden until opened, on wider screens CSS keeps it visible.
     document.getElementById(menuButton.getAttribute('aria-controls')).classList.toggle('hidden', !open);
+
+    // Every time the menu opens, the account links start folded again.
+    if (!open) foldAccount(false);
 });
 
 bind(profileButton, profileButton && document.getElementById(profileButton.getAttribute('aria-controls')), (open) => {

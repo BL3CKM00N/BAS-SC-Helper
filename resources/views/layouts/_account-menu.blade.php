@@ -13,11 +13,15 @@
     $linkClass = $dropdown ? 'rounded-lg px-3 py-2 text-sm' : 'rounded-lg px-3 py-2.5 text-base';
 @endphp
 
-<div class="{{ $dropdown ? 'px-3 pb-3 pt-2' : 'px-3 pb-3' }}">
-    <p class="truncate text-sm font-medium">{{ $user->name }}</p>
-    <p class="truncate text-xs text-[#b8bab8]">{{ $user->email }}</p>
-    <p class="mt-1 text-xs text-[#7be0a8]">{{ $roleLabel }}</p>
-</div>
+@if ($dropdown)
+    <div class="px-3 pb-3 pt-2">
+        <p class="truncate text-sm font-medium">{{ $user->name }}</p>
+        <p class="truncate text-xs text-[#b8bab8]">{{ $user->email }}</p>
+        <p class="mt-1 text-xs text-[#7be0a8]">{{ $roleLabel }}</p>
+    </div>
+@else
+    <p class="px-3 pb-2 pt-1 text-xs text-[#7be0a8]">{{ $roleLabel }}</p>
+@endif
 
 <div class="flex flex-col gap-0.5 {{ $dropdown ? 'border-t border-white/10 pt-2' : '' }}">
     @foreach ($links as [$label, $url, $active])
@@ -35,7 +39,7 @@
     @endif
 </div>
 
-<form method="POST" action="{{ route('logout') }}" class="{{ $dropdown ? 'mt-2 border-t border-white/10 pt-2' : 'mt-3' }}">
+<form method="POST" action="{{ route('logout') }}" class="{{ $dropdown ? 'mt-2 border-t border-white/10 pt-2' : 'mt-1' }}">
     @csrf
     <button type="submit" class="w-full text-left transition text-[#b8bab8] hover:bg-white/5 hover:text-white {{ $linkClass }}">Sign out</button>
 </form>
