@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AccountSecurityController;
+use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PasswordSetupController;
 use App\Http\Controllers\PushController;
@@ -69,6 +70,9 @@ Route::middleware(['auth', 'password.chosen'])->group(function () {
     Route::post('/devices/subscribe', [PushController::class, 'subscribe'])->name('push.subscribe');
     Route::post('/devices/unsubscribe', [PushController::class, 'unsubscribe'])->name('push.unsubscribe');
     Route::post('/devices/test', [PushController::class, 'test'])->name('push.test');
+
+    Route::get('/announcements', [AnnouncementController::class, 'index'])->name('announcements.index');
+    Route::post('/announcements/{announcement}/dismiss', [AnnouncementController::class, 'dismiss'])->name('announcements.dismiss');
 
     Route::view('/dashboard', 'dashboard.index')->name('dashboard');
 

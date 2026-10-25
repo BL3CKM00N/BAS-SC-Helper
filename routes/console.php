@@ -16,3 +16,6 @@ Schedule::command('teams:prune')->everyFiveMinutes();
 
 // Old sign-in log and audit log entries expire (see the KEEP_DAYS constants on the models).
 Schedule::command('model:prune')->daily();
+
+// Announcements that ask for a push notification are pushed once, as soon as they start.
+Schedule::command('announcements:publish')->everyMinute()->withoutOverlapping();

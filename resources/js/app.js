@@ -5,6 +5,7 @@ import './connection';
 import './due-now';
 import './push';
 import './nudge';
+import './announcements';
 
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {

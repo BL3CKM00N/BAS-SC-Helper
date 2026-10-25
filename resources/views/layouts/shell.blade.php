@@ -79,6 +79,9 @@
             </div>
         </div>
     </header>
+    <div id="announcements" data-url="{{ route('announcements.index') }}">
+        @include('layouts._announcements', ['announcements' => \App\Models\Announcement::visibleFor(auth()->user())])
+    </div>
     @if (app(\App\Services\Admin\Maintenance::class)->isOn())
         <div role="status" class="bg-amber-500/15 px-4 py-2 text-center text-sm text-amber-200">Maintenance mode is on: only admins can use the app right now.</div>
     @endif
