@@ -124,4 +124,34 @@ class TeamTest extends TestCase
         $this->actingAs(User::factory()->create())->get('/admin/teams')->assertForbidden();
         $this->assertSame(Role::ADMIN, Role::query()->where('name', Role::ADMIN)->value('name'));
     }
+
+    public function test_the_teams_tab_only_shows_for_people_in_a_team(): void
+    {
+        $loner = User::factory()->create();
+        $member = User::factory()->create();
+        $this->team(manager: User::factory()->create(), member: $member);
+
+        $this->actingAs($loner)->get('/dashboard')->assertOk()->assertDontSee(route('teams.index'));
+        $this->actingAs($member)->get('/dashboard')->assertOk()->assertSee('href="'.route('teams.index').'"', false);
+    }
+
+    public function test_an_admin_without_a_team_has_no_teams_tab_but_keeps_the_admin_tab(): void
+    {
+        $this->actingAs(User::factory()->admin()->create())->get('/dashboard')
+            ->assertOk()
+            ->assertDontSee('href="'.route('teams.index').'"', false)
+            ->assertSee('href="/admin"', false);
+    }
+
+    public function test_someone_without_a_team_who_opens_the_page_anyway_gets_a_clear_message(): void
+    {
+        $this->actingAs(User::factory()->create())->get('/teams')->assertOk()->assertSee('You are not in a team');
+    }
+
+    public function test_the_tab_appears_as_soon_as_someone_becomes_a_team_manager(): void
+    {
+        $user = User::factory()->create(['role_id' => Role::query()->firstOrCreate(['name' => Role::TEAM_MANAGER])->id]);
+
+        $this->actingAs($user)->get('/dashboard')->assertSee('href="'.route('teams.index').'"', false);
+    }
 }

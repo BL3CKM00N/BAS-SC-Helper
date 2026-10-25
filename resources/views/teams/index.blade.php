@@ -6,6 +6,10 @@
     <h1 class="text-2xl font-semibold">Teams</h1>
     <p class="mt-1 text-sm text-[#b8bab8]">The teams you are in. Admins create teams and assign managers in the admin panel.</p>
 
+    @if ($teams->isEmpty())
+        <p class="mt-8 rounded-2xl border border-dashed border-white/15 bg-[#262623] p-6 text-sm text-[#b8bab8]">You are not in a team. Ask an admin or your team manager.</p>
+    @endif
+
     <ul class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         @foreach ($teams as $team)
             <li>

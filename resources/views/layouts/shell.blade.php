@@ -13,9 +13,12 @@
                 $tabs = [
                     ['Dashboard', route('dashboard'), request()->routeIs('dashboard')],
                     ['Reminders', route('reminders.index'), request()->routeIs('reminders.*')],
-                    ['Teams', route('teams.index'), request()->routeIs('teams.*')],
-                    ['Settings', route('settings.edit'), request()->routeIs('settings.*')],
                 ];
+                // The Teams tab only exists for people who are in a team.
+                if (auth()->user()->teams->isNotEmpty()) {
+                    $tabs[] = ['Teams', route('teams.index'), request()->routeIs('teams.*')];
+                }
+                $tabs[] = ['Settings', route('settings.edit'), request()->routeIs('settings.*')];
                 if (auth()->user()->isAdmin()) {
                     $tabs[] = ['Admin', '/admin', false];
                 }
