@@ -111,4 +111,15 @@ class NavigationTest extends TestCase
         $this->assertStringContainsString('bg-white/10', $onAccount[1]);
         $this->assertStringNotContainsString('bg-white/10', $elsewhere[1]);
     }
+
+    public function test_the_desktop_header_centres_the_work_pages_between_the_logo_and_the_profile_button(): void
+    {
+        $html = $this->actingAs(User::factory()->create())->get('/dashboard')->getContent();
+
+        // Three equal side columns around the links: the links stay in the middle whatever the logo and the name look like.
+        $this->assertStringContainsString('sm:grid-cols-[1fr_auto_1fr]', $html);
+        $this->assertMatchesRegularExpression('/<nav[^>]*sm:justify-self-center[^>]*aria-label="Main"/', $html);
+        $this->assertMatchesRegularExpression('/<div class="relative hidden sm:block sm:justify-self-end" data-profile>/', $html);
+        $this->assertMatchesRegularExpression('/<div id="main-menu"[^>]*sm:contents/', $html);
+    }
 }

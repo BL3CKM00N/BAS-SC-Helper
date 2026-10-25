@@ -17,7 +17,7 @@
             }
         @endphp
 
-        <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 px-4 py-3">
+        <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 px-4 py-3 sm:grid sm:grid-cols-[1fr_auto_1fr] sm:flex-nowrap">
             <a href="{{ route('dashboard') }}" class="flex items-center">
                 <img src="{{ $logoUrl }}" alt="BAS World" class="h-7 w-auto">
             </a>
@@ -31,8 +31,8 @@
                 <span data-notify-dot hidden class="absolute right-1.5 top-1.5 size-2.5 rounded-full bg-amber-400 ring-2 ring-[#262623]"></span>
             </button>
 
-            <div id="main-menu" data-menu class="hidden basis-full flex-col gap-4 pb-1 pt-3 sm:flex sm:flex-1 sm:basis-auto sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:p-0">
-                <nav class="flex flex-col gap-1 sm:flex-row" aria-label="Main">
+            <div id="main-menu" data-menu class="hidden basis-full flex-col gap-4 pb-1 pt-3 sm:contents">
+                <nav class="flex flex-col gap-1 sm:flex-row sm:justify-self-center" aria-label="Main">
                     @foreach ($tabs as [$label, $url, $active])
                         <a href="{{ $url }}" @if ($active) aria-current="page" @endif
                             class="whitespace-nowrap rounded-lg px-3 py-2.5 text-base font-medium transition sm:py-1.5 sm:text-sm {{ $active ? 'bg-white/10' : 'text-[#b8bab8] hover:bg-white/5 hover:text-white' }}">{{ $label }}</a>
@@ -40,14 +40,14 @@
                 </nav>
 
                 {{-- The profile menu on a computer: a dropdown under the round button. --}}
-                <div class="relative hidden sm:block" data-profile>
+                <div class="relative hidden sm:block sm:justify-self-end" data-profile>
                     <button type="button" data-profile-button aria-expanded="false" aria-controls="profile-menu" aria-haspopup="true"
-                        class="group flex items-center gap-2 rounded-full py-1 pl-1 pr-3 text-sm transition hover:bg-white/5">
+                        class="group flex items-center gap-2 rounded-full py-1 pl-1 pr-2 text-sm transition hover:bg-white/5 md:pr-3">
                         <span class="relative flex size-8 items-center justify-center rounded-full bg-[#1da15e] text-xs font-semibold text-white">
                             {{ $user->initials() }}
                             <span data-notify-dot hidden class="absolute -right-0.5 -top-0.5 size-2.5 rounded-full bg-amber-400 ring-2 ring-[#262623]"></span>
                         </span>
-                        <span class="max-w-[10rem] truncate">{{ $user->name }}</span>
+                        <span class="hidden max-w-[10rem] truncate md:inline">{{ $user->name }}</span>
                         <svg class="size-4 text-[#b8bab8] transition group-aria-expanded:rotate-180" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 8l5 5 5-5" /></svg>
                     </button>
 
