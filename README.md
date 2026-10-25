@@ -47,13 +47,20 @@ vendor/bin/pint     # fix code style
 ## Access and admin
 
 - **Login card on `/`:** visitors who are not signed in only see a login card (email and password). Signed-in users go to the dashboard (`/dashboard`). Sign-in attempts are limited to 5 per minute for each email and IP address. Only `/up`, the login routes, `/sw.js` and the static files (manifest, icons, offline page) are public.
-- **Roles:** the `roles` table holds `admin` and `user`, and every user has a `role_id`.
+- **Roles:** the `roles` table holds `admin`, `team_manager` and `user`, and every user has a `role_id`. Only admins reach the admin panel. The `team_manager` role comes with a team (see Teams below).
 - **Dashboard:** a placeholder with a top bar. Admins also see an **Admin** tab, which opens the Filament admin panel at `/admin`. Normal users have no tab and get a 403 on `/admin`.
 - **Admin panel:** Filament, always in dark mode, with the BAS World logo and green. It has no login of its own (visitors are sent to the login card). The **Users** resource creates and edits users, sets passwords (leave the field empty to keep the current one) and assigns roles. Nobody can delete their own account.
 - **First admin:** `php artisan db:seed` (or `migrate --seed`) creates the roles and one admin from `ADMIN_MAIL` and `ADMIN_PASSWORD`. The defaults are `admin@example.com` and `CHANGEME!`. The seeder sets the name and password only when it creates the account, so it is safe to run on every deploy and a password changed in the panel is never overwritten. It does always restore the admin role for that email.
 - **Change the default password:** set `ADMIN_MAIL` and `ADMIN_PASSWORD` in the Dokploy environment before the first deploy. If the default account already exists in production, sign in and change its password in the admin panel.
+- **Requests:** a manager cannot change who is in the team. On the team page they send a request: **a new account** (name and email), **adding an existing user** (by email) or **removing a member**. Admins see them under **Team requests** in the admin panel (with a badge for the pending ones and a push notification if they enabled notifications), and approve or reject them, with a reason that the manager sees. The manager can withdraw a request that is still pending. Approving carries it out.
+- **New accounts:** when approving a new account the admin chooses how the person gets a password. **Temporary password:** it is shown once to the admin, who hands it over, and the person must choose their own on first sign-in. **Email invitation:** the person gets a mail with a link, valid for 7 days and usable once, to choose a password. This needs mail settings (`MAIL_*`, see `.env.example`); in production the option is disabled until `MAIL_MAILER` is something other than `log`, and if the mail server fails nothing is created.
 - **Microsoft SSO:** planned for later, restricted to `@basworld.com` accounts.
-- **Teams:** a user can be in several teams, as `manager` or `member` (separate from the app roles above). Admins create teams and set members in the admin panel (**Teams**). Managers see a **Teams** page in the app where they add existing users by email, change roles, remove members and decide whether members may create team reminders. A team always keeps at least one manager.
+- **Teams:** a user can be in several teams, or none. Each team has **at most one manager** (`teams.manager_id`), and a manager manages **exactly one team**:
+  - **Getting the role creates the team.** An admin gives someone the `team_manager` role in the admin panel and a team ("Anna's team", renamable) is created with them as its manager.
+  - **Losing the role opens the team.** If the role is revoked, or the manager is deleted, the team has no manager and shows as **Open**. The former manager stays in it as a normal member. An admin can open the team and use **Assign manager** to give it to someone (who then takes over this team instead of getting a new one).
+  - **Empty open teams disappear.** An open team that nobody is in any more is deleted automatically (right away, and `teams:prune` checks every 5 minutes). Its team reminders go with it.
+  - **A manager only manages their own team:** renaming it, deciding whether members may create team reminders, and sending requests (below). Admins manage teams and memberships directly in the admin panel (**Teams**, **Users**).
+  - **The Teams menu item only shows for people who are in a team.**
 
 ## Reminders
 
@@ -90,7 +97,7 @@ When a team reminder goes to everyone you choose: **anyone can finish it** (the 
 
 - **Database:** PostgreSQL. Production sets `DB_CONNECTION=pgsql` and the `DB_*` variables in the Dokploy app environment. The `.env` file is never committed.
 - **Build and start:** nixpacks builds the app (the PHP and Node versions come from `composer.json` and `package.json`). `nixpacks.toml` runs the migrations and the (repeatable) seeder, publishes the Filament assets, starts the scheduler in the background (`schedule:work`, which runs `reminders:send` every minute) and starts the server on every deploy.
-- **Environment variables:** besides the database, set `ADMIN_MAIL`, `ADMIN_PASSWORD`, `VAPID_SUBJECT`, `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` in Dokploy (see `.env.example`).
+- **Environment variables:** besides the database, set `ADMIN_MAIL`, `ADMIN_PASSWORD`, `VAPID_SUBJECT`, `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` in Dokploy (see `.env.example`), and the `MAIL_*` settings if admins should be able to send email invitations (see `.env.example`).
 - **Proxy:** the app runs behind Traefik and Cloudflare, so proxies are trusted in `bootstrap/app.php`.
 - **Caching:** the logo and favicon URLs carry a `?v=` version so Cloudflare never serves an outdated image. `/sw.js` is served with `no-cache`.
 
@@ -112,7 +119,7 @@ Nothing here is promised yet. The list is filled in as the service coordinator w
 - [x] Base Laravel project and deployment
 - [x] BAS World branding, favicon and PWA icons
 - [x] Offline, server-unreachable and error screens
-- [x] Teams with manager and member roles
+- [x] Teams with a single manager each, open teams, and requests that admins approve
 - [x] Reminders: deadlines, repeating reminders, work hours, team reminders and push notifications
 - [ ] Map the rest of the service coordinator workflow and decide the next feature
 - [x] Login, roles and a Filament admin panel for admins
