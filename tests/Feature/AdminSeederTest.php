@@ -17,7 +17,7 @@ class AdminSeederTest extends TestCase
     {
         $this->seed(DatabaseSeeder::class);
 
-        $this->assertEqualsCanonicalizing([Role::ADMIN, Role::USER], Role::query()->pluck('name')->all());
+        $this->assertEqualsCanonicalizing([Role::ADMIN, Role::TEAM_MANAGER, Role::USER], Role::query()->pluck('name')->all());
 
         $admin = User::query()->where('email', 'admin@example.com')->firstOrFail();
         $this->assertTrue($admin->isAdmin());

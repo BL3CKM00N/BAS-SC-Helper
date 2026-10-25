@@ -36,6 +36,9 @@ class TeamPolicy
         return $team->isManagedBy($user);
     }
 
+    /**
+     * Sending requests to add, remove or create team members.
+     */
     public function manageMembers(User $user, Team $team): bool
     {
         return $team->isManagedBy($user);

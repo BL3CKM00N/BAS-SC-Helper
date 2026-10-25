@@ -38,10 +38,10 @@ class ReminderEngineTest extends TestCase
 
     private function team(User ...$users): Team
     {
-        $team = Team::factory()->create();
+        $team = Team::factory()->managedBy($users[0])->create();
 
-        foreach ($users as $i => $user) {
-            $team->users()->attach($user, ['role' => $i === 0 ? Team::MANAGER : Team::MEMBER]);
+        foreach (array_slice($users, 1) as $user) {
+            $team->users()->attach($user);
         }
 
         return $team;
@@ -88,7 +88,7 @@ class ReminderEngineTest extends TestCase
         $reminder = Reminder::factory()->create(['created_by' => $manager->id, 'team_id' => $team->id]);
         $this->engine->sync($reminder, $this->at('2026-10-26 10:00'));
 
-        $team->users()->attach($newcomer, ['role' => Team::MEMBER]);
+        $team->users()->attach($newcomer);
         $team->users()->detach($a);
         $this->engine->syncTeamReminders($this->at('2026-10-26 10:05'));
 

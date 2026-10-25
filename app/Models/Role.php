@@ -11,6 +11,8 @@ class Role extends Model
 {
     public const ADMIN = 'admin';
 
+    public const TEAM_MANAGER = 'team_manager';
+
     public const USER = 'user';
 
     /**

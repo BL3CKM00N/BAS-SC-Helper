@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Observers\UserObserver;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Database\Factories\UserFactory;
@@ -10,15 +11,18 @@ use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use NotificationChannels\WebPush\HasPushSubscriptions;
 
 #[Fillable(['name', 'email', 'password', 'role_id', 'timezone', 'work_days', 'work_start', 'work_end'])]
 #[Hidden(['password', 'remember_token'])]
+#[ObservedBy(UserObserver::class)]
 class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<UserFactory> */
@@ -54,7 +58,7 @@ class User extends Authenticatable implements FilamentUser
      */
     public function teams(): BelongsToMany
     {
-        return $this->belongsToMany(Team::class)->withPivot('role')->withTimestamps();
+        return $this->belongsToMany(Team::class)->withTimestamps();
     }
 
     /**
@@ -63,6 +67,21 @@ class User extends Authenticatable implements FilamentUser
     public function local(?CarbonInterface $moment): ?CarbonImmutable
     {
         return $moment ? CarbonImmutable::instance($moment)->setTimezone($this->timezone ?: 'Europe/Amsterdam') : null;
+    }
+
+    /**
+     * The team this user manages, if any. A manager manages exactly one team.
+     *
+     * @return HasOne<Team, $this>
+     */
+    public function managedTeam(): HasOne
+    {
+        return $this->hasOne(Team::class, 'manager_id');
+    }
+
+    public function isTeamManager(): bool
+    {
+        return $this->role?->name === Role::TEAM_MANAGER;
     }
 
     public function isAdmin(): bool

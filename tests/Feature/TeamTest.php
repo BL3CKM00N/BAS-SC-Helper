@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Role;
 use App\Models\Team;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -13,14 +14,10 @@ class TeamTest extends TestCase
 
     private function team(?User $manager = null, ?User $member = null): Team
     {
-        $team = Team::factory()->create();
-
-        if ($manager) {
-            $team->users()->attach($manager, ['role' => Team::MANAGER]);
-        }
+        $team = $manager ? Team::factory()->managedBy($manager)->create() : Team::factory()->create();
 
         if ($member) {
-            $team->users()->attach($member, ['role' => Team::MEMBER]);
+            $team->users()->attach($member);
         }
 
         return $team;
@@ -43,97 +40,80 @@ class TeamTest extends TestCase
             ->assertDontSee($other->name);
     }
 
-    public function test_only_members_can_open_a_team(): void
+    public function test_a_user_can_be_in_several_teams(): void
     {
-        $team = $this->team(manager: User::factory()->create());
+        $user = User::factory()->create();
+        $a = $this->team(manager: User::factory()->create(), member: $user);
+        $b = $this->team(manager: User::factory()->create(), member: $user);
 
-        $this->actingAs(User::factory()->create())->get(route('teams.show', $team))->assertForbidden();
-        $this->actingAs($team->users()->first())->get(route('teams.show', $team))->assertOk();
+        $this->actingAs($user)->get('/teams')->assertSee($a->name)->assertSee($b->name);
     }
 
-    public function test_members_see_no_management_forms(): void
+    public function test_the_team_page_shows_who_manages_it_and_open_teams(): void
+    {
+        $manager = User::factory()->create(['name' => 'Marian Manager']);
+        $member = User::factory()->create();
+        $managed = $this->team(manager: $manager, member: $member);
+        $open = $this->team(member: $member);
+
+        $this->actingAs($member)->get(route('teams.show', $managed))->assertOk()->assertSee('Manager: Marian Manager');
+        $this->actingAs($member)->get(route('teams.show', $open))->assertOk()->assertSee('no manager');
+        $this->actingAs($member)->get('/teams')->assertSee('No manager yet');
+    }
+
+    public function test_only_members_can_open_a_team(): void
+    {
+        $manager = User::factory()->create();
+        $team = $this->team(manager: $manager);
+
+        $this->actingAs(User::factory()->create())->get(route('teams.show', $team))->assertForbidden();
+        $this->actingAs($manager)->get(route('teams.show', $team))->assertOk();
+    }
+
+    public function test_members_see_no_settings_form(): void
     {
         $member = User::factory()->create();
         $team = $this->team(manager: User::factory()->create(), member: $member);
 
         $this->actingAs($member)->get(route('teams.show', $team))
             ->assertOk()
-            ->assertDontSee('Add a member')
             ->assertDontSee('Team settings');
     }
 
-    public function test_managers_can_add_change_and_remove_members(): void
+    public function test_the_manager_can_rename_the_team_and_toggle_member_creation(): void
     {
         $manager = User::factory()->create();
-        $newcomer = User::factory()->create(['email' => 'new@example.com']);
         $team = $this->team(manager: $manager);
 
-        $this->actingAs($manager)->post(route('teams.members.add', $team), ['email' => 'new@example.com', 'role' => 'member'])
-            ->assertSessionHasNoErrors();
-        $this->assertTrue($team->hasMember($newcomer));
+        $this->actingAs($manager)->patch(route('teams.update', $team), ['name' => 'Night shift', 'members_can_create' => 1])->assertSessionHasNoErrors();
 
-        $this->actingAs($manager)->patch(route('teams.members.update', [$team, $newcomer]), ['role' => 'manager']);
-        $this->assertTrue($team->isManagedBy($newcomer));
+        $this->assertSame('Night shift', $team->fresh()->name);
+        $this->assertTrue($team->fresh()->members_can_create);
 
-        $this->actingAs($manager)->delete(route('teams.members.remove', [$team, $newcomer]));
-        $this->assertFalse($team->hasMember($newcomer));
+        $this->actingAs($manager)->patch(route('teams.update', $team), ['name' => 'Night shift']);
+        $this->assertFalse($team->fresh()->members_can_create);
     }
 
-    public function test_members_cannot_manage_the_team(): void
+    public function test_a_team_name_must_be_unique(): void
+    {
+        $manager = User::factory()->create();
+        $team = $this->team(manager: $manager);
+        $other = Team::factory()->create(['name' => 'Taken']);
+
+        $this->actingAs($manager)->patch(route('teams.update', $team), ['name' => 'Taken'])->assertSessionHasErrors('name');
+        $this->assertNotSame($other->name, $team->fresh()->name);
+    }
+
+    public function test_members_and_outsiders_cannot_change_the_team(): void
     {
         $member = User::factory()->create();
-        $victim = User::factory()->create();
         $team = $this->team(manager: User::factory()->create(), member: $member);
-        $team->users()->attach($victim, ['role' => Team::MEMBER]);
-
-        $this->actingAs($member)->post(route('teams.members.add', $team), ['email' => User::factory()->create()->email, 'role' => 'member'])->assertForbidden();
-        $this->actingAs($member)->delete(route('teams.members.remove', [$team, $victim]))->assertForbidden();
-        $this->actingAs($member)->patch(route('teams.members.update', [$team, $member]), ['role' => 'manager'])->assertForbidden();
-        $this->actingAs($member)->patch(route('teams.update', $team), ['members_can_create' => 1])->assertForbidden();
-
-        $this->assertTrue($team->hasMember($victim));
-        $this->assertFalse($team->isManagedBy($member));
-    }
-
-    public function test_managers_of_another_team_cannot_manage_this_one(): void
-    {
-        $team = $this->team(manager: User::factory()->create());
         $outsiderManager = User::factory()->create();
         $this->team(manager: $outsiderManager);
 
-        $this->actingAs($outsiderManager)->post(route('teams.members.add', $team), ['email' => $outsiderManager->email, 'role' => 'member'])->assertForbidden();
-    }
-
-    public function test_a_team_always_keeps_a_manager(): void
-    {
-        $manager = User::factory()->create();
-        $team = $this->team(manager: $manager);
-
-        $this->actingAs($manager)->patch(route('teams.members.update', [$team, $manager]), ['role' => 'member'])->assertSessionHasErrors('role');
-        $this->actingAs($manager)->delete(route('teams.members.remove', [$team, $manager]))->assertSessionHasErrors('role');
-
-        $this->assertTrue($team->isManagedBy($manager));
-    }
-
-    public function test_adding_an_unknown_or_existing_member_fails(): void
-    {
-        $manager = User::factory()->create();
-        $team = $this->team(manager: $manager);
-
-        $this->actingAs($manager)->post(route('teams.members.add', $team), ['email' => 'nobody@example.com', 'role' => 'member'])->assertSessionHasErrors('email');
-        $this->actingAs($manager)->post(route('teams.members.add', $team), ['email' => $manager->email, 'role' => 'member'])->assertSessionHasErrors('email');
-    }
-
-    public function test_managers_can_toggle_whether_members_may_create_reminders(): void
-    {
-        $manager = User::factory()->create();
-        $team = $this->team(manager: $manager);
-
-        $this->actingAs($manager)->patch(route('teams.update', $team), ['members_can_create' => 1]);
-        $this->assertTrue($team->fresh()->members_can_create);
-
-        $this->actingAs($manager)->patch(route('teams.update', $team), []);
-        $this->assertFalse($team->fresh()->members_can_create);
+        $this->actingAs($member)->patch(route('teams.update', $team), ['name' => 'Hacked'])->assertForbidden();
+        $this->actingAs($outsiderManager)->patch(route('teams.update', $team), ['name' => 'Hacked'])->assertForbidden();
+        $this->assertNotSame('Hacked', $team->fresh()->name);
     }
 
     public function test_admins_manage_teams_in_the_panel_but_normal_users_cannot(): void
@@ -142,5 +122,6 @@ class TeamTest extends TestCase
 
         $this->actingAs(User::factory()->admin()->create())->get('/admin/teams')->assertOk()->assertSee($team->name);
         $this->actingAs(User::factory()->create())->get('/admin/teams')->assertForbidden();
+        $this->assertSame(Role::ADMIN, Role::query()->where('name', Role::ADMIN)->value('name'));
     }
 }

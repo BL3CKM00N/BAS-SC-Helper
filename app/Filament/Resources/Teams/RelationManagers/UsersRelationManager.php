@@ -2,15 +2,14 @@
 
 namespace App\Filament\Resources\Teams\RelationManagers;
 
+use App\Filament\Resources\Teams\TeamResource;
 use App\Models\Team;
+use App\Services\Teams\TeamManagement;
 use Filament\Actions\AttachAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DetachAction;
 use Filament\Actions\DetachBulkAction;
-use Filament\Actions\EditAction;
-use Filament\Forms\Components\Select;
 use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -19,18 +18,6 @@ class UsersRelationManager extends RelationManager
     protected static string $relationship = 'users';
 
     protected static ?string $title = 'Members';
-
-    public function form(Schema $schema): Schema
-    {
-        return $schema
-            ->components([
-                Select::make('role')
-                    ->options([Team::MEMBER => 'Member', Team::MANAGER => 'Manager'])
-                    ->default(Team::MEMBER)
-                    ->required()
-                    ->native(false),
-            ]);
-    }
 
     public function table(Table $table): Table
     {
@@ -41,30 +28,41 @@ class UsersRelationManager extends RelationManager
                     ->searchable(),
                 TextColumn::make('email')
                     ->searchable(),
-                TextColumn::make('role')
+                TextColumn::make('role.name')
+                    ->label('Role')
+                    ->badge(),
+                TextColumn::make('manager')
+                    ->state(fn ($record): ?string => $this->getOwnerRecord()->isManagedBy($record) ? 'manager of this team' : null)
                     ->badge()
-                    ->color(fn (?string $state): string => $state === Team::MANAGER ? 'primary' : 'gray'),
+                    ->color('primary'),
             ])
             ->headerActions([
                 AttachAction::make()
-                    ->preloadRecordSelect()
-                    ->schema(fn (AttachAction $action): array => [
-                        $action->getRecordSelect(),
-                        Select::make('role')
-                            ->options([Team::MEMBER => 'Member', Team::MANAGER => 'Manager'])
-                            ->default(Team::MEMBER)
-                            ->required()
-                            ->native(false),
-                    ]),
+                    ->preloadRecordSelect(),
             ])
             ->recordActions([
-                EditAction::make(),
-                DetachAction::make(),
+                // The manager belongs to their own team, they are removed by changing who manages it.
+                DetachAction::make()
+                    ->hidden(fn ($record): bool => $this->getOwnerRecord()->isManagedBy($record))
+                    ->after(fn () => $this->leaveIfTeamIsGone()),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DetachBulkAction::make(),
+                    DetachBulkAction::make()
+                        ->after(fn () => $this->leaveIfTeamIsGone()),
                 ]),
             ]);
+    }
+
+    /**
+     * An open team with nobody left is deleted, so this page has nothing to show any more.
+     */
+    private function leaveIfTeamIsGone(): void
+    {
+        app(TeamManagement::class)->pruneAbandoned();
+
+        if (! Team::query()->whereKey($this->getOwnerRecord()->getKey())->exists()) {
+            $this->redirect(TeamResource::getUrl('index'));
+        }
     }
 }

@@ -15,11 +15,10 @@ class ReminderAccessTest extends TestCase
 
     private function teamWith(User $manager, User ...$members): Team
     {
-        $team = Team::factory()->create();
-        $team->users()->attach($manager, ['role' => Team::MANAGER]);
+        $team = Team::factory()->managedBy($manager)->create();
 
         foreach ($members as $member) {
-            $team->users()->attach($member, ['role' => Team::MEMBER]);
+            $team->users()->attach($member);
         }
 
         return $team;

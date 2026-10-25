@@ -25,8 +25,16 @@ class UsersTable
                 TextColumn::make('role.name')
                     ->label('Role')
                     ->badge()
-                    ->color(fn (?string $state): string => $state === Role::ADMIN ? 'primary' : 'gray')
+                    ->color(fn (?string $state): string => match ($state) {
+                        Role::ADMIN => 'primary',
+                        Role::TEAM_MANAGER => 'info',
+                        default => 'gray',
+                    })
                     ->sortable(),
+                TextColumn::make('teams.name')
+                    ->label('Teams')
+                    ->badge()
+                    ->color('gray'),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
