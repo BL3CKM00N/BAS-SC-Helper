@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsurePasswordIsChosen;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -13,6 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->trustProxies(at: '*');
+        $middleware->alias(['password.chosen' => EnsurePasswordIsChosen::class]);
         $middleware->redirectUsersTo('/dashboard');
 
         // The notification buttons call signed URLs from the service worker, which has no CSRF token.

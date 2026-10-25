@@ -20,7 +20,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use NotificationChannels\WebPush\HasPushSubscriptions;
 
-#[Fillable(['name', 'email', 'password', 'role_id', 'timezone', 'work_days', 'work_start', 'work_end'])]
+#[Fillable(['name', 'email', 'password', 'role_id', 'timezone', 'work_days', 'work_start', 'work_end', 'must_change_password', 'invited_at'])]
 #[Hidden(['password', 'remember_token'])]
 #[ObservedBy(UserObserver::class)]
 class User extends Authenticatable implements FilamentUser
@@ -98,6 +98,8 @@ class User extends Authenticatable implements FilamentUser
     {
         return [
             'email_verified_at' => 'datetime',
+            'invited_at' => 'datetime',
+            'must_change_password' => 'boolean',
             'password' => 'hashed',
         ];
     }

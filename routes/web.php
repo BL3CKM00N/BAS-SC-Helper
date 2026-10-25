@@ -1,10 +1,12 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\PasswordSetupController;
 use App\Http\Controllers\PushController;
 use App\Http\Controllers\ReminderController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\TeamController;
+use App\Http\Controllers\TeamRequestController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/sw.js', function () {
@@ -53,7 +55,15 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->n
 Route::post('/push/{recipient}/done', [PushController::class, 'done'])->middleware('signed')->name('push.done');
 Route::post('/push/{recipient}/snooze', [PushController::class, 'snooze'])->middleware('signed')->name('push.snooze');
 
+// First password, from an invitation email (signed link, valid once) or after a temporary password.
+Route::get('/invite/{user}', [PasswordSetupController::class, 'inviteForm'])->middleware('signed')->name('invite.show');
+Route::post('/invite/{user}', [PasswordSetupController::class, 'invite'])->middleware('signed')->name('invite.store');
 Route::middleware('auth')->group(function () {
+    Route::get('/password/change', [PasswordSetupController::class, 'changeForm'])->name('password.change');
+    Route::post('/password/change', [PasswordSetupController::class, 'change'])->name('password.update');
+});
+
+Route::middleware(['auth', 'password.chosen'])->group(function () {
     Route::post('/devices/subscribe', [PushController::class, 'subscribe'])->name('push.subscribe');
     Route::post('/devices/unsubscribe', [PushController::class, 'unsubscribe'])->name('push.unsubscribe');
     Route::post('/devices/test', [PushController::class, 'test'])->name('push.test');
@@ -77,4 +87,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/teams', [TeamController::class, 'index'])->name('teams.index');
     Route::get('/teams/{team}', [TeamController::class, 'show'])->name('teams.show');
     Route::patch('/teams/{team}', [TeamController::class, 'update'])->name('teams.update');
+    Route::post('/teams/{team}/requests', [TeamRequestController::class, 'store'])->name('teams.requests.store');
+    Route::delete('/teams/{team}/requests/{teamRequest}', [TeamRequestController::class, 'destroy'])->name('teams.requests.destroy');
 });

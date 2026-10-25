@@ -25,6 +25,9 @@ class TeamController extends Controller
             'team' => $team->load('manager'),
             'members' => $team->users()->orderBy('name')->get(),
             'canManage' => Gate::allows('manageMembers', $team),
+            'requests' => Gate::allows('manageMembers', $team)
+                ? $team->requests()->with(['target', 'decider'])->latest()->limit(20)->get()
+                : collect(),
         ]);
     }
 
