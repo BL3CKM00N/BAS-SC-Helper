@@ -44,6 +44,7 @@ class AdminPanelProvider extends PanelProvider
             ->favicon(asset('favicon.svg'))
             // No top bar: the logo sits at the top of the sidebar and the profile menu at the bottom of it.
             ->topbar(false)
+            ->navigationGroups(['People', 'Monitoring', 'System'])
             // The sidebar gets the colour of the app header (gray 900) instead of the page colour. On a phone there is
             // a bar like the app header, with the logo on the left and a button on the right that opens the sidebar.
             ->renderHook(PanelsRenderHook::HEAD_END, fn (): string => '<style>'

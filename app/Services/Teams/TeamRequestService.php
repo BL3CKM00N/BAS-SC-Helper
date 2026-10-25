@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Notifications\AccountInvite;
 use App\Notifications\TeamRequestDecided;
 use App\Notifications\TeamRequestSubmitted;
+use App\Services\Admin\Audit;
 use App\Support\MailSettings;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -50,6 +51,8 @@ class TeamRequestService
             'status' => TeamRequest::PENDING,
         ]);
 
+        Audit::record('request.submitted', $manager->name.' requested: '.$type.' for '.$team->name, $request, actor: $manager);
+
         $this->push(User::query()->whereHas('role', fn ($query) => $query->where('name', Role::ADMIN))->get(), new TeamRequestSubmitted($request));
 
         return $request;
@@ -89,6 +92,8 @@ class TeamRequestService
             return $approval;
         });
 
+        Audit::record('request.approved', 'Approved a '.$request->type.' request for '.$request->team?->name, $request, actor: $admin);
+
         $this->push(collect([$request->requester]), new TeamRequestDecided($request));
 
         return $approval;
@@ -104,6 +109,8 @@ class TeamRequestService
             'decided_at' => now(),
             'decision_note' => $reason,
         ]);
+
+        Audit::record('request.rejected', 'Rejected a '.$request->type.' request for '.$request->team?->name, $request, ['reason' => $reason], $admin);
 
         $this->push(collect([$request->requester]), new TeamRequestDecided($request));
     }

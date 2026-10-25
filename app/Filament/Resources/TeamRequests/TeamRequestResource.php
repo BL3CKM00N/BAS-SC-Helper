@@ -17,6 +17,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Validation\ValidationException;
+use UnitEnum;
 
 /**
  * Where admins approve or reject what team managers ask for.
@@ -24,6 +25,10 @@ use Illuminate\Validation\ValidationException;
 class TeamRequestResource extends Resource
 {
     protected static ?string $model = TeamRequest::class;
+
+    protected static string|UnitEnum|null $navigationGroup = 'People';
+
+    protected static ?int $navigationSort = 3;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedInboxArrowDown;
 

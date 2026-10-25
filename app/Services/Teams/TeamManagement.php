@@ -5,6 +5,7 @@ namespace App\Services\Teams;
 use App\Models\Role;
 use App\Models\Team;
 use App\Models\User;
+use App\Services\Admin\Audit;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -30,6 +31,7 @@ class TeamManagement
         return DB::transaction(function () use ($user) {
             $team = Team::query()->create(['name' => $this->freeName($user->name."'s team"), 'manager_id' => $user->getKey()]);
             $team->users()->attach($user);
+            Audit::record('team.created', 'Created the team '.$team->name, $team);
 
             return $team;
         });
@@ -70,11 +72,15 @@ class TeamManagement
                 $user->update(['role_id' => Role::query()->where('name', Role::TEAM_MANAGER)->value('id')]);
             }
         });
+
+        Audit::record('team.manager_assigned', $user->name.' now manages '.$team->name, $team);
     }
 
     public function addMember(Team $team, User $user): void
     {
         $team->users()->syncWithoutDetaching([$user->getKey()]);
+
+        Audit::record('team.member_added', 'Added '.$user->name.' to '.$team->name, $team);
     }
 
     /**
@@ -89,6 +95,8 @@ class TeamManagement
         }
 
         $team->users()->detach($user);
+
+        Audit::record('team.member_removed', 'Removed '.$user->name.' from '.$team->name, $team);
 
         $this->pruneAbandoned();
     }

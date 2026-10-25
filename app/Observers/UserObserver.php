@@ -4,6 +4,7 @@ namespace App\Observers;
 
 use App\Models\Role;
 use App\Models\User;
+use App\Services\Admin\Audit;
 use App\Services\Teams\TeamManagement;
 
 /**
@@ -15,6 +16,8 @@ class UserObserver
 
     public function created(User $user): void
     {
+        Audit::record('user.created', 'Created the account of '.$user->name.' ('.$user->email.')', $user);
+
         if ($user->isTeamManager()) {
             $this->teams->ensureTeamFor($user);
         }
@@ -31,6 +34,8 @@ class UserObserver
 
         $user->unsetRelation('role');
 
+        Audit::record('user.role_changed', 'Changed the role of '.$user->name.' to '.($user->role?->name ?? 'none'), $user);
+
         if ($user->isTeamManager() && ! $wasManager) {
             $this->teams->ensureTeamFor($user);
         } elseif ($wasManager && ! $user->isTeamManager()) {
@@ -40,6 +45,8 @@ class UserObserver
 
     public function deleted(User $user): void
     {
+        Audit::record('user.deleted', 'Deleted the account of '.$user->name.' ('.$user->email.')', null, ['user_id' => $user->getKey()]);
+
         // The foreign key already emptied manager_id, so the team may now be open and abandoned.
         $this->teams->pruneAbandoned();
     }
