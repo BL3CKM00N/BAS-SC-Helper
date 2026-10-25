@@ -4,6 +4,9 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
+        @if (config('webpush.vapid.public_key'))
+            <meta name="vapid-public-key" content="{{ config('webpush.vapid.public_key') }}">
+        @endif
 
         <title>@yield('title', config('app.name', 'BAS SC Helper')){{ app()->environment('local') ? ' [DEV]' : '' }}</title>
         <meta name="app-logo" content="{{ $logoUrl }}">

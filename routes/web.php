@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\PushController;
 use App\Http\Controllers\ReminderController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\TeamController;
@@ -48,7 +49,15 @@ Route::get('/', function () {
 Route::post('/login', [AuthController::class, 'login'])->middleware(['guest', 'throttle:login'])->name('login.store');
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
 
+// Called by the buttons on a push notification, authorised by the signed URL (see ReminderDue).
+Route::post('/push/{recipient}/done', [PushController::class, 'done'])->middleware('signed')->name('push.done');
+Route::post('/push/{recipient}/snooze', [PushController::class, 'snooze'])->middleware('signed')->name('push.snooze');
+
 Route::middleware('auth')->group(function () {
+    Route::post('/devices/subscribe', [PushController::class, 'subscribe'])->name('push.subscribe');
+    Route::post('/devices/unsubscribe', [PushController::class, 'unsubscribe'])->name('push.unsubscribe');
+    Route::post('/devices/test', [PushController::class, 'test'])->name('push.test');
+
     Route::view('/dashboard', 'dashboard.index')->name('dashboard');
 
     Route::get('/reminders', [ReminderController::class, 'index'])->name('reminders.index');

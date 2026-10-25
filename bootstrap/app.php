@@ -14,6 +14,9 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->trustProxies(at: '*');
         $middleware->redirectUsersTo('/dashboard');
+
+        // The notification buttons call signed URLs from the service worker, which has no CSRF token.
+        $middleware->preventRequestForgery(except: ['push/*']);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

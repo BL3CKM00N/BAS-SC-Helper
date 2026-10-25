@@ -74,3 +74,49 @@ self.addEventListener('fetch', (event) => {
         event.respondWith(caches.match(request, { ignoreSearch: true }).then((cached) => cached || fetch(request)));
     }
 });
+
+// Push notifications for due reminders. The Done and Snooze buttons call signed URLs from the payload.
+self.addEventListener('push', (event) => {
+    let data = {};
+
+    try {
+        data = event.data ? event.data.json() : {};
+    } catch (error) {
+        data = { body: event.data ? event.data.text() : '' };
+    }
+
+    const { title = 'BAS SC Helper', ...options } = data;
+
+    event.waitUntil(self.registration.showNotification(title, {
+        icon: '/icons/icon-192.png',
+        badge: '/icons/icon-192.png',
+        ...options,
+    }));
+});
+
+self.addEventListener('notificationclick', (event) => {
+    const data = event.notification.data || {};
+    const post = (url) => (url ? fetch(url, { method: 'POST' }).catch(() => {}) : Promise.resolve());
+
+    event.notification.close();
+
+    event.waitUntil((async () => {
+        if (event.action === 'done') return post(data.doneUrl);
+        if (event.action === 'snooze') return post(data.snoozeUrl);
+
+        const target = data.url || '/reminders';
+        const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+
+        for (const client of windows) {
+            try {
+                await client.navigate(target);
+            } catch (error) {
+                // Some clients cannot be navigated, focusing them is enough.
+            }
+
+            return client.focus();
+        }
+
+        return self.clients.openWindow(target);
+    })());
+});
