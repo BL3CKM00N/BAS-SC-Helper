@@ -14,7 +14,7 @@
         @fonts
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body class="min-h-screen flex items-center justify-center bg-[#1d1d1a] p-6 font-sans text-white antialiased">
+    <body class="min-h-screen bg-[#1d1d1a] font-sans text-white antialiased @yield('body-class', 'flex items-center justify-center p-6')">
         @yield('content')
 
         @if (app()->environment('local'))

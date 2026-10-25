@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AuthController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/sw.js', function () {
@@ -36,6 +37,14 @@ Route::get('/logo-dev.svg', function () {
     return response($svg, 200, ['Content-Type' => 'image/svg+xml', 'Cache-Control' => 'no-cache']);
 });
 
+// The login card lives on the home page. Signed-in users go straight to the dashboard.
 Route::get('/', function () {
-    return view('welcome');
+    return auth()->check() ? redirect()->route('dashboard') : view('auth.login');
+})->name('login');
+
+Route::post('/login', [AuthController::class, 'login'])->middleware(['guest', 'throttle:login'])->name('login.store');
+Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
+
+Route::middleware('auth')->group(function () {
+    Route::view('/dashboard', 'dashboard.index')->name('dashboard');
 });
