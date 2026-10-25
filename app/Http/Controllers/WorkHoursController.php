@@ -2,20 +2,18 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\Account\UserSessions;
 use DateTimeZone;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
-class SettingsController extends Controller
+class WorkHoursController extends Controller
 {
-    public function edit(Request $request, UserSessions $sessions): View
+    public function edit(Request $request): View
     {
-        return view('settings.edit', [
+        return view('account.work-hours', [
             'user' => $request->user(),
-            'devices' => $sessions->for($request->user(), $request->session()->getId()),
             'timezones' => DateTimeZone::listIdentifiers(),
             'days' => [1 => 'Monday', 2 => 'Tuesday', 3 => 'Wednesday', 4 => 'Thursday', 5 => 'Friday', 6 => 'Saturday', 7 => 'Sunday'],
         ]);
@@ -43,6 +41,6 @@ class SettingsController extends Controller
             'work_end' => $data['work_end'],
         ]);
 
-        return back()->with('status', 'Your work hours were saved.');
+        return redirect()->route('account.work-hours')->with('status', 'Your work hours were saved.');
     }
 }

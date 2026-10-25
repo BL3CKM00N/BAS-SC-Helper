@@ -1,13 +1,14 @@
 <?php
 
+use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AccountSecurityController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PasswordSetupController;
 use App\Http\Controllers\PushController;
 use App\Http\Controllers\ReminderController;
-use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\TeamRequestController;
+use App\Http\Controllers\WorkHoursController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/sw.js', function () {
@@ -82,13 +83,18 @@ Route::middleware(['auth', 'password.chosen'])->group(function () {
     Route::post('/reminders/{reminder}/snooze', [ReminderController::class, 'snooze'])->name('reminders.snooze');
     Route::post('/reminders/{reminder}/skip', [ReminderController::class, 'skip'])->name('reminders.skip');
 
-    Route::get('/settings', [SettingsController::class, 'edit'])->name('settings.edit');
-    Route::patch('/settings', [SettingsController::class, 'update'])->name('settings.update');
-
-    Route::put('/settings/password', [AccountSecurityController::class, 'changePassword'])->name('settings.password');
-    Route::delete('/settings/devices', [AccountSecurityController::class, 'revokeOthers'])->name('settings.devices.destroy-others');
-    Route::post('/settings/devices/sign-out-everywhere', [AccountSecurityController::class, 'logoutEverywhere'])->name('settings.devices.sign-out-everywhere');
-    Route::delete('/settings/devices/{handle}', [AccountSecurityController::class, 'revoke'])->where('handle', '[a-f0-9]{32}')->name('settings.devices.destroy');
+    // Your own account. /settings was the old, single page and now leads here.
+    Route::redirect('/settings', '/account');
+    Route::get('/account', [AccountController::class, 'index'])->name('account.index');
+    Route::get('/account/profile', [AccountController::class, 'profile'])->name('account.profile');
+    Route::get('/account/notifications', [AccountController::class, 'notifications'])->name('account.notifications');
+    Route::get('/account/work-hours', [WorkHoursController::class, 'edit'])->name('account.work-hours');
+    Route::patch('/account/work-hours', [WorkHoursController::class, 'update'])->name('account.work-hours.update');
+    Route::get('/account/security', [AccountSecurityController::class, 'show'])->name('account.security');
+    Route::put('/account/security/password', [AccountSecurityController::class, 'changePassword'])->name('account.security.password');
+    Route::delete('/account/security/devices', [AccountSecurityController::class, 'revokeOthers'])->name('account.security.devices.destroy-others');
+    Route::post('/account/security/devices/sign-out-everywhere', [AccountSecurityController::class, 'logoutEverywhere'])->name('account.security.devices.sign-out-everywhere');
+    Route::delete('/account/security/devices/{handle}', [AccountSecurityController::class, 'revoke'])->where('handle', '[a-f0-9]{32}')->name('account.security.devices.destroy');
 
     Route::get('/teams', [TeamController::class, 'index'])->name('teams.index');
     Route::get('/teams/{team}', [TeamController::class, 'show'])->name('teams.show');

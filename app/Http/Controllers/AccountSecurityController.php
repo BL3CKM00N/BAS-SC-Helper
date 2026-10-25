@@ -7,6 +7,7 @@ use App\Services\Account\UserSessions;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\View\View;
 
 /**
  * Changing your own password and managing the devices you are signed in on.
@@ -14,6 +15,14 @@ use Illuminate\Support\Facades\Auth;
 class AccountSecurityController extends Controller
 {
     public function __construct(private readonly UserSessions $sessions) {}
+
+    public function show(Request $request): View
+    {
+        return view('account.security', [
+            'user' => $request->user(),
+            'devices' => $this->sessions->for($request->user(), $request->session()->getId()),
+        ]);
+    }
 
     /**
      * Change the password. Every other device is signed out, this one stays signed in.
@@ -33,7 +42,7 @@ class AccountSecurityController extends Controller
         $this->sessions->revokeOthers($user, $current);
         $this->refreshRememberCookie($request);
 
-        return redirect()->to(route('settings.edit').'#devices')->with('status', 'Your password was changed and your other devices were signed out.');
+        return redirect()->route('account.security')->with('status', 'Your password was changed and your other devices were signed out.');
     }
 
     /**
@@ -44,13 +53,13 @@ class AccountSecurityController extends Controller
         $user = $request->user();
 
         if (! $this->sessions->revoke($user, $handle, $request->session()->getId())) {
-            return redirect()->to(route('settings.edit').'#devices')->withErrors(['devices' => 'That device was not found. It may already be signed out.']);
+            return redirect()->route('account.security')->withErrors(['devices' => 'That device was not found. It may already be signed out.']);
         }
 
         $this->sessions->rotateRememberToken($user);
         $this->refreshRememberCookie($request);
 
-        return redirect()->to(route('settings.edit').'#devices')->with('status', 'That device was signed out.');
+        return redirect()->route('account.security')->with('status', 'That device was signed out.');
     }
 
     /**
@@ -64,7 +73,7 @@ class AccountSecurityController extends Controller
         $this->sessions->rotateRememberToken($user);
         $this->refreshRememberCookie($request);
 
-        return redirect()->to(route('settings.edit').'#devices')->with('status', $ended > 0
+        return redirect()->route('account.security')->with('status', $ended > 0
             ? 'All your other devices were signed out.'
             : 'You were not signed in anywhere else.');
     }

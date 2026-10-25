@@ -78,10 +78,10 @@ class AccountSecurityTest extends TestCase
 
     public function test_guests_cannot_use_the_device_pages(): void
     {
-        $this->put('/settings/password')->assertRedirect('/');
-        $this->delete('/settings/devices')->assertRedirect('/');
-        $this->post('/settings/devices/sign-out-everywhere')->assertRedirect('/');
-        $this->delete('/settings/devices/'.str_repeat('a', 32))->assertRedirect('/');
+        $this->put('/account/security/password')->assertRedirect('/');
+        $this->delete('/account/security/devices')->assertRedirect('/');
+        $this->post('/account/security/devices/sign-out-everywhere')->assertRedirect('/');
+        $this->delete('/account/security/devices/'.str_repeat('a', 32))->assertRedirect('/');
     }
 
     public function test_the_settings_page_lists_the_devices_and_marks_this_one(): void
@@ -89,7 +89,7 @@ class AccountSecurityTest extends TestCase
         $user = User::factory()->create();
         $this->addSession($user, 'other-phone', ['user_agent' => self::IPHONE_SAFARI, 'ip_address' => '198.51.100.9']);
 
-        $this->signedIn($user)->get('/settings')
+        $this->signedIn($user)->get('/account/security')
             ->assertOk()
             ->assertSee('Devices you are signed in on')
             ->assertSee('Chrome on macOS')
@@ -111,8 +111,8 @@ class AccountSecurityTest extends TestCase
         $this->assertTrue($sessions->first()['current'], 'this device is first even though it was active least recently');
         $this->assertFalse($sessions->last()['current']);
 
-        $html = $this->signedIn($user)->get('/settings')->getContent();
-        $this->assertSame(1, preg_match_all('/action="[^"]*settings\/devices\/[a-f0-9]{32}"/', $html), 'only the other device has its own sign out button');
+        $html = $this->signedIn($user)->get('/account/security')->getContent();
+        $this->assertSame(1, preg_match_all('/action="[^"]*account\/security\/devices\/[a-f0-9]{32}"/', $html), 'only the other device has its own sign out button');
     }
 
     public function test_session_ids_never_reach_the_page_and_other_users_sessions_are_not_listed(): void
@@ -122,7 +122,7 @@ class AccountSecurityTest extends TestCase
         $this->addSession($user, 'secret-session-id-of-the-user');
         $this->addSession($stranger, 'stranger-session-id', ['ip_address' => '192.0.2.99']);
 
-        $html = $this->signedIn($user)->get('/settings')->assertOk()->getContent();
+        $html = $this->signedIn($user)->get('/account/security')->assertOk()->getContent();
 
         $this->assertStringNotContainsString('secret-session-id-of-the-user', $html);
         $this->assertStringNotContainsString(self::CURRENT, $html);
@@ -139,8 +139,8 @@ class AccountSecurityTest extends TestCase
         $this->addSession($user, 'other-phone');
         $this->addSession($user, 'other-laptop');
 
-        $this->signedIn($user)->delete('/settings/devices/'.$this->handle('other-phone'))
-            ->assertRedirect(route('settings.edit').'#devices')
+        $this->signedIn($user)->delete('/account/security/devices/'.$this->handle('other-phone'))
+            ->assertRedirect(route('account.security'))
             ->assertSessionHas('status');
 
         $this->assertDatabaseMissing('sessions', ['id' => 'other-phone']);
@@ -153,7 +153,7 @@ class AccountSecurityTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $this->signedIn($user)->delete('/settings/devices/'.$this->handle(self::CURRENT))->assertSessionHasErrors('devices');
+        $this->signedIn($user)->delete('/account/security/devices/'.$this->handle(self::CURRENT))->assertSessionHasErrors('devices');
 
         $this->assertDatabaseHas('sessions', ['id' => self::CURRENT]);
     }
@@ -164,7 +164,7 @@ class AccountSecurityTest extends TestCase
         $stranger = User::factory()->create();
         $this->addSession($stranger, 'stranger-session-id');
 
-        $this->signedIn($user)->delete('/settings/devices/'.$this->handle('stranger-session-id'))->assertSessionHasErrors('devices');
+        $this->signedIn($user)->delete('/account/security/devices/'.$this->handle('stranger-session-id'))->assertSessionHasErrors('devices');
 
         $this->assertDatabaseHas('sessions', ['id' => 'stranger-session-id']);
     }
@@ -173,9 +173,9 @@ class AccountSecurityTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $this->signedIn($user)->delete('/settings/devices/'.str_repeat('0', 32))->assertSessionHasErrors('devices');
+        $this->signedIn($user)->delete('/account/security/devices/'.str_repeat('0', 32))->assertSessionHasErrors('devices');
         $this->signedIn($user)->delete('/settings/devices/not-a-handle')->assertNotFound();
-        $this->signedIn($user)->delete('/settings/devices/'.self::CURRENT)->assertNotFound();
+        $this->signedIn($user)->delete('/account/security/devices/'.self::CURRENT)->assertNotFound();
     }
 
     public function test_all_other_devices_can_be_signed_out_at_once(): void
@@ -186,7 +186,7 @@ class AccountSecurityTest extends TestCase
         $this->addSession($user, 'other-laptop');
         $this->addSession($stranger, 'stranger-session-id');
 
-        $this->signedIn($user)->delete('/settings/devices')->assertRedirect(route('settings.edit').'#devices')->assertSessionHas('status');
+        $this->signedIn($user)->delete('/account/security/devices')->assertRedirect(route('account.security'))->assertSessionHas('status');
 
         $this->assertSame([self::CURRENT], DB::table('sessions')->where('user_id', $user->id)->pluck('id')->all());
         $this->assertDatabaseHas('sessions', ['id' => 'stranger-session-id']);
@@ -199,7 +199,7 @@ class AccountSecurityTest extends TestCase
         $this->addSession($user, 'other-phone');
         $this->addSession($stranger, 'stranger-session-id');
 
-        $this->signedIn($user)->post('/settings/devices/sign-out-everywhere')->assertRedirect(route('login'));
+        $this->signedIn($user)->post('/account/security/devices/sign-out-everywhere')->assertRedirect(route('login'));
 
         $this->assertGuest();
         $this->assertSame(0, DB::table('sessions')->where('user_id', $user->id)->count());
@@ -211,7 +211,7 @@ class AccountSecurityTest extends TestCase
 
     private function change(User $user, array $data)
     {
-        return $this->signedIn($user)->put('/settings/password', $data);
+        return $this->signedIn($user)->put('/account/security/password', $data);
     }
 
     public function test_changing_the_password_signs_out_the_other_devices_but_not_this_one(): void
@@ -220,7 +220,7 @@ class AccountSecurityTest extends TestCase
         $this->addSession($user, 'other-phone');
 
         $this->change($user, ['current_password' => 'old-password-123', 'password' => 'new-password-456', 'password_confirmation' => 'new-password-456'])
-            ->assertRedirect(route('settings.edit').'#devices')
+            ->assertRedirect(route('account.security'))
             ->assertSessionHas('status')
             ->assertSessionDoesntHaveErrors();
 
@@ -238,7 +238,7 @@ class AccountSecurityTest extends TestCase
         $user = User::factory()->create(['password' => 'old-password-123']);
 
         $this->change($user, ['current_password' => 'wrong-password', 'password' => 'new-password-456', 'password_confirmation' => 'new-password-456'])
-            ->assertRedirect(route('settings.edit').'#password')
+            ->assertRedirect(route('account.security'))
             ->assertSessionHasErrorsIn('password', 'current_password');
 
         $this->assertTrue(Hash::check('old-password-123', $user->fresh()->password));
@@ -261,6 +261,6 @@ class AccountSecurityTest extends TestCase
 
         $this->change($user, ['current_password' => 'nope', 'password' => 'new-password-456', 'password_confirmation' => 'new-password-456']);
 
-        $this->signedIn($user, self::CURRENT_TWO)->get('/settings')->assertOk()->assertSee('Change password');
+        $this->signedIn($user, self::CURRENT_TWO)->get('/account/security')->assertOk()->assertSee('Change password');
     }
 }

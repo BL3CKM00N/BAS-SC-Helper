@@ -38,6 +38,8 @@ if (panel) {
     }
 
     async function render() {
+        window.dispatchEvent(new Event('push:changed'));
+
         if (!publicKey) return show('Notifications are not set up on the server yet.', 'none');
 
         if (!supported) {

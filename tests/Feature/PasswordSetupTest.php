@@ -19,7 +19,7 @@ class PasswordSetupTest extends TestCase
     {
         $user = User::factory()->create(['must_change_password' => true]);
 
-        foreach (['/dashboard', '/reminders', '/teams', '/settings'] as $page) {
+        foreach (['/dashboard', '/reminders', '/teams', '/account/profile'] as $page) {
             $this->actingAs($user)->get($page)->assertRedirect(route('password.change'));
         }
 

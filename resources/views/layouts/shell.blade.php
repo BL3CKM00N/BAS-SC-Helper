@@ -5,17 +5,15 @@
 @section('content')
     <header class="border-b border-white/10 bg-[#262623]">
         @php
+            $user = auth()->user();
+            // The work pages. Everything about you lives in the profile menu.
             $tabs = [
                 ['Dashboard', route('dashboard'), request()->routeIs('dashboard')],
                 ['Reminders', route('reminders.index'), request()->routeIs('reminders.*')],
             ];
             // The Teams tab only exists for people who are in a team.
-            if (auth()->user()->teams->isNotEmpty()) {
+            if ($user->teams->isNotEmpty()) {
                 $tabs[] = ['Teams', route('teams.index'), request()->routeIs('teams.*')];
-            }
-            $tabs[] = ['Settings', route('settings.edit'), request()->routeIs('settings.*')];
-            if (auth()->user()->isAdmin()) {
-                $tabs[] = ['Admin', '/admin', false];
             }
         @endphp
 
@@ -26,10 +24,11 @@
 
             {{-- On a phone the menu is behind this button, from the sm breakpoint up it is always visible. --}}
             <button type="button" data-menu-button aria-expanded="false" aria-controls="main-menu"
-                class="group -mr-2 flex size-10 items-center justify-center rounded-lg text-white transition hover:bg-white/5 sm:hidden">
+                class="group relative -mr-2 flex size-10 items-center justify-center rounded-lg text-white transition hover:bg-white/5 sm:hidden">
                 <span class="sr-only">Menu</span>
                 <svg class="size-6 group-aria-expanded:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
                 <svg class="hidden size-6 group-aria-expanded:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+                <span data-notify-dot hidden class="absolute right-1.5 top-1.5 size-2.5 rounded-full bg-amber-400 ring-2 ring-[#262623]"></span>
             </button>
 
             <div id="main-menu" data-menu class="hidden basis-full flex-col gap-4 pb-1 pt-3 sm:flex sm:flex-1 sm:basis-auto sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:p-0">
@@ -40,12 +39,26 @@
                     @endforeach
                 </nav>
 
-                <div class="flex items-center justify-between gap-3 border-t border-white/10 pt-4 sm:border-0 sm:pt-0">
-                    <span class="truncate text-sm text-[#b8bab8]">{{ auth()->user()->name }}</span>
-                    <form method="POST" action="{{ route('logout') }}">
-                        @csrf
-                        <button type="submit" class="rounded-lg border border-white/15 px-3 py-1.5 text-sm transition hover:bg-white/5">Sign out</button>
-                    </form>
+                {{-- The profile menu on a computer: a dropdown under the round button. --}}
+                <div class="relative hidden sm:block" data-profile>
+                    <button type="button" data-profile-button aria-expanded="false" aria-controls="profile-menu" aria-haspopup="true"
+                        class="group flex items-center gap-2 rounded-full py-1 pl-1 pr-3 text-sm transition hover:bg-white/5">
+                        <span class="relative flex size-8 items-center justify-center rounded-full bg-[#1da15e] text-xs font-semibold text-white">
+                            {{ $user->initials() }}
+                            <span data-notify-dot hidden class="absolute -right-0.5 -top-0.5 size-2.5 rounded-full bg-amber-400 ring-2 ring-[#262623]"></span>
+                        </span>
+                        <span class="max-w-[10rem] truncate">{{ $user->name }}</span>
+                        <svg class="size-4 text-[#b8bab8] transition group-aria-expanded:rotate-180" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 8l5 5 5-5" /></svg>
+                    </button>
+
+                    <div id="profile-menu" hidden class="absolute right-0 z-40 mt-2 w-72 rounded-xl border border-white/10 bg-[#262623] p-2 shadow-2xl">
+                        @include('layouts._account-menu', ['variant' => 'dropdown'])
+                    </div>
+                </div>
+
+                {{-- The same on a phone: a section at the bottom of the hamburger menu. --}}
+                <div class="border-t border-white/10 pt-4 sm:hidden">
+                    @include('layouts._account-menu', ['variant' => 'section'])
                 </div>
             </div>
         </div>

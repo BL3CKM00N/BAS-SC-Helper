@@ -84,6 +84,22 @@ class User extends Authenticatable implements FilamentUser
         return $this->role?->name === Role::TEAM_MANAGER;
     }
 
+    /**
+     * Up to two letters for the round profile button: the first letters of the first and the last name.
+     */
+    public function initials(): string
+    {
+        $words = preg_split('/\s+/', trim($this->name), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+        if ($words === []) {
+            return '?';
+        }
+
+        $letters = mb_substr($words[0], 0, 1).(count($words) > 1 ? mb_substr(end($words), 0, 1) : '');
+
+        return mb_strtoupper($letters);
+    }
+
     public function isAdmin(): bool
     {
         return $this->role?->name === Role::ADMIN;

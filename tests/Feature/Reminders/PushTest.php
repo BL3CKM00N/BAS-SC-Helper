@@ -67,11 +67,11 @@ class PushTest extends TestCase
         $this->actingAs(User::factory()->create())->postJson('/devices/test')->assertStatus(422);
     }
 
-    public function test_the_settings_page_has_the_notification_switch_and_the_public_key(): void
+    public function test_the_notifications_page_has_the_switch_and_the_public_key(): void
     {
         config(['webpush.vapid.public_key' => 'public-key-for-test']);
 
-        $this->actingAs(User::factory()->create())->get('/settings')
+        $this->actingAs(User::factory()->create())->get('/account/notifications')
             ->assertOk()
             ->assertSee('Turn on notifications')
             ->assertSee('<meta name="vapid-public-key" content="public-key-for-test">', false);

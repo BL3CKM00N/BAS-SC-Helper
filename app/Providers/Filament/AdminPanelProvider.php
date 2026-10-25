@@ -45,6 +45,10 @@ class AdminPanelProvider extends PanelProvider
                 'primary' => Color::hex('#1da15e'),
             ])
             ->userMenuItems([
+                Action::make('account')
+                    ->label('Account')
+                    ->icon('heroicon-o-user-circle')
+                    ->url('/account'),
                 Action::make('dashboard')
                     ->label('Dashboard')
                     ->icon('heroicon-o-home')

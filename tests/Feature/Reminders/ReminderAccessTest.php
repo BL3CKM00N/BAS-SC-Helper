@@ -38,7 +38,8 @@ class ReminderAccessTest extends TestCase
     {
         $this->get('/reminders')->assertRedirect('/');
         $this->get('/reminders/due')->assertRedirect('/');
-        $this->get('/settings')->assertRedirect('/');
+        $this->get('/account/work-hours')->assertRedirect('/');
+        $this->get('/account/profile')->assertRedirect('/');
     }
 
     public function test_a_personal_reminder_is_visible_to_its_owner_only(): void
@@ -331,9 +332,9 @@ class ReminderAccessTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $this->actingAs($user)->get('/settings')->assertOk()->assertSee('Work hours');
+        $this->actingAs($user)->get('/account/work-hours')->assertOk()->assertSee('Work hours');
 
-        $this->actingAs($user)->patch('/settings', [
+        $this->actingAs($user)->patch('/account/work-hours', [
             'timezone' => 'Europe/London',
             'work_days' => [1, 2, 3, 4],
             'work_start' => '07:30',
@@ -351,7 +352,7 @@ class ReminderAccessTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $this->actingAs($user)->patch('/settings', ['timezone' => 'Nowhere/Land', 'work_days' => [], 'work_start' => '18:00', 'work_end' => '09:00'])
+        $this->actingAs($user)->patch('/account/work-hours', ['timezone' => 'Nowhere/Land', 'work_days' => [], 'work_start' => '18:00', 'work_end' => '09:00'])
             ->assertSessionHasErrors(['timezone', 'work_days', 'work_end']);
 
         $this->assertSame('08:00', $user->fresh()->work_start);

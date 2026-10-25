@@ -14,7 +14,7 @@ class ChangePasswordRequest extends FormRequest
 
     protected function getRedirectUrl(): string
     {
-        return route('settings.edit').'#password';
+        return route('account.security');
     }
 
     /**
