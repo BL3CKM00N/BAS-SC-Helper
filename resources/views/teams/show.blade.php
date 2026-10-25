@@ -42,11 +42,11 @@
             $inputClass = 'w-full rounded-lg border border-white/15 bg-[#1d1d1a] px-3 py-2.5 text-sm text-white outline-none focus:border-[#1da15e]';
         @endphp
 
-        <section class="mt-6 max-w-xl rounded-2xl border border-white/10 bg-[#262623] p-6">
+        <section class="mt-6 rounded-2xl border border-white/10 bg-[#262623] p-6">
             <h2 class="text-sm font-medium text-[#b8bab8]">Change who is in the team</h2>
-            <p class="mt-1 text-sm text-[#b8bab8]">You cannot change the members yourself. Send a request and an admin will approve it.</p>
+            <p class="mt-1 max-w-2xl text-sm text-[#b8bab8]">You cannot change the members yourself. Send a request and an admin will approve it.</p>
 
-            <details class="mt-4 rounded-xl border border-white/10 bg-[#1d1d1a] p-4" @open(old('type') === 'new_member')>
+            <details class="mt-4 max-w-2xl rounded-xl border border-white/10 bg-[#1d1d1a] p-4" @open(old('type') === 'new_member')>
                 <summary class="cursor-pointer text-sm font-medium">Request a new account</summary>
                 <form method="POST" action="{{ route('teams.requests.store', $team) }}" class="mt-4 space-y-3">
                     @csrf
@@ -67,7 +67,7 @@
                 </form>
             </details>
 
-            <details class="mt-3 rounded-xl border border-white/10 bg-[#1d1d1a] p-4" @open(old('type') === 'add_member')>
+            <details class="mt-3 max-w-2xl rounded-xl border border-white/10 bg-[#1d1d1a] p-4" @open(old('type') === 'add_member')>
                 <summary class="cursor-pointer text-sm font-medium">Request to add someone who already has an account</summary>
                 <form method="POST" action="{{ route('teams.requests.store', $team) }}" class="mt-4 space-y-3">
                     @csrf
@@ -119,9 +119,9 @@
             @endif
         </section>
 
-        <section class="mt-6 max-w-xl rounded-2xl border border-white/10 bg-[#262623] p-6">
+        <section class="mt-6 rounded-2xl border border-white/10 bg-[#262623] p-6">
             <h2 class="text-sm font-medium text-[#b8bab8]">Team settings</h2>
-            <form method="POST" action="{{ route('teams.update', $team) }}" class="mt-4 space-y-4">
+            <form method="POST" action="{{ route('teams.update', $team) }}" class="mt-4 max-w-2xl space-y-4">
                 @csrf
                 @method('PATCH')
                 <div>

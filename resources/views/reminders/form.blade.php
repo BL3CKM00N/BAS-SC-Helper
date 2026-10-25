@@ -15,7 +15,7 @@
     <a href="{{ route('reminders.index') }}" class="text-sm text-[#b8bab8] hover:text-white">&larr; Reminders</a>
     <h1 class="mt-2 text-2xl font-semibold">{{ $editing ? 'Edit reminder' : 'New reminder' }}</h1>
 
-    <form method="POST" action="{{ $editing ? route('reminders.update', $reminder) : route('reminders.store') }}" class="mt-6 max-w-2xl space-y-5" data-reminder-form>
+    <form method="POST" action="{{ $editing ? route('reminders.update', $reminder) : route('reminders.store') }}" class="mt-6 space-y-5 rounded-2xl border border-white/10 bg-[#262623] p-6 [&>*]:max-w-2xl" data-reminder-form>
         @csrf
         @if ($editing) @method('PATCH') @endif
 
@@ -32,11 +32,11 @@
         <fieldset>
             <legend class="mb-2 text-sm text-[#b8bab8]">Kind of reminder</legend>
             <div class="grid gap-3 sm:grid-cols-2">
-                <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-[#262623] p-4 has-[:checked]:border-[#1da15e]">
+                <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-[#1d1d1a] p-4 has-[:checked]:border-[#1da15e]">
                     <input type="radio" name="type" value="deadline" @checked($type === 'deadline') class="mt-1 accent-[#1da15e]" data-type-radio>
                     <span><span class="block text-sm font-medium">Deadline</span><span class="text-xs text-[#b8bab8]">Reminds you more often as the deadline gets closer, until it is done.</span></span>
                 </label>
-                <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-[#262623] p-4 has-[:checked]:border-[#1da15e]">
+                <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-[#1d1d1a] p-4 has-[:checked]:border-[#1da15e]">
                     <input type="radio" name="type" value="repeating" @checked($type === 'repeating') class="mt-1 accent-[#1da15e]" data-type-radio>
                     <span><span class="block text-sm font-medium">Repeats during the day</span><span class="text-xs text-[#b8bab8]">Comes back every X minutes after you did it, for things you do several times a day.</span></span>
                 </label>

@@ -10,9 +10,9 @@
 @section('page')
     <h1 class="text-2xl font-semibold">Settings</h1>
 
-    <section class="mt-8 max-w-2xl rounded-2xl border border-white/10 bg-[#262623] p-6" data-push-panel>
+    <section class="mt-8 rounded-2xl border border-white/10 bg-[#262623] p-6" data-push-panel>
         <h2 class="text-sm font-medium text-[#b8bab8]">Notifications</h2>
-        <p class="mt-1 text-sm text-[#b8bab8]">Get your reminders as a notification on this device, also when the app is closed. Turn it on for each phone or computer you use.</p>
+        <p class="mt-1 max-w-2xl text-sm text-[#b8bab8]">Get your reminders as a notification on this device, also when the app is closed. Turn it on for each phone or computer you use.</p>
         <p class="mt-4 text-sm" data-push-status role="status">Checking this device...</p>
         <div class="mt-4 flex flex-wrap gap-2">
             <button type="button" data-push-enable hidden class="rounded-lg bg-[#1da15e] px-4 py-2.5 text-sm font-medium transition hover:bg-[#178a4f]">Turn on notifications</button>
@@ -21,11 +21,11 @@
         </div>
     </section>
 
-    <section class="mt-6 max-w-2xl rounded-2xl border border-white/10 bg-[#262623] p-6">
+    <section class="mt-6 rounded-2xl border border-white/10 bg-[#262623] p-6">
         <h2 class="text-sm font-medium text-[#b8bab8]">Work hours</h2>
-        <p class="mt-1 text-sm text-[#b8bab8]">Reminders are only sent during your work hours. Anything that comes due outside them waits until your next working period.</p>
+        <p class="mt-1 max-w-2xl text-sm text-[#b8bab8]">Reminders are only sent during your work hours. Anything that comes due outside them waits until your next working period.</p>
 
-        <form method="POST" action="{{ route('settings.update') }}" class="mt-6 space-y-5">
+        <form method="POST" action="{{ route('settings.update') }}" class="mt-6 max-w-2xl space-y-5">
             @csrf
             @method('PATCH')
 
