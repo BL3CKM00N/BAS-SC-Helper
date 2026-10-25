@@ -3,6 +3,7 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="csrf-token" content="{{ csrf_token() }}">
 
         <title>@yield('title', config('app.name', 'BAS SC Helper')){{ app()->environment('local') ? ' [DEV]' : '' }}</title>
         <meta name="app-logo" content="{{ $logoUrl }}">
@@ -18,7 +19,7 @@
         @yield('content')
 
         @if (app()->environment('local'))
-            <footer class="fixed inset-x-0 bottom-0 py-2 text-center font-[system-ui] text-xs font-extrabold uppercase tracking-widest text-red-500">
+            <footer class="pointer-events-none fixed inset-x-0 bottom-0 bg-[#1d1d1a]/90 py-2 text-center font-[system-ui] text-xs font-extrabold uppercase tracking-widest text-red-500">
                 Development environment
             </footer>
         @endif

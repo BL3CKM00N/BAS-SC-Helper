@@ -3,6 +3,8 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
@@ -52,6 +54,14 @@ class User extends Authenticatable implements FilamentUser
     public function teams(): BelongsToMany
     {
         return $this->belongsToMany(Team::class)->withPivot('role')->withTimestamps();
+    }
+
+    /**
+     * A moment shown in this user's own time zone.
+     */
+    public function local(?CarbonInterface $moment): ?CarbonImmutable
+    {
+        return $moment ? CarbonImmutable::instance($moment)->setTimezone($this->timezone ?: 'Europe/Amsterdam') : null;
     }
 
     public function isAdmin(): bool

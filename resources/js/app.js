@@ -1,5 +1,6 @@
 import './pwa';
 import './connection';
+import './due-now';
 
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {

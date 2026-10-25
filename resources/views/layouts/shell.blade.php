@@ -12,17 +12,19 @@
             @php
                 $tabs = [
                     ['Dashboard', route('dashboard'), request()->routeIs('dashboard')],
+                    ['Reminders', route('reminders.index'), request()->routeIs('reminders.*')],
                     ['Teams', route('teams.index'), request()->routeIs('teams.*')],
+                    ['Settings', route('settings.edit'), request()->routeIs('settings.*')],
                 ];
                 if (auth()->user()->isAdmin()) {
                     $tabs[] = ['Admin', '/admin', false];
                 }
             @endphp
 
-            <nav class="order-last flex w-full gap-1 overflow-x-auto sm:order-none sm:w-auto" aria-label="Main">
+            <nav class="order-last flex w-full gap-0.5 overflow-x-auto [scrollbar-width:none] sm:order-none sm:w-auto sm:gap-1 [&::-webkit-scrollbar]:hidden" aria-label="Main">
                 @foreach ($tabs as [$label, $url, $active])
                     <a href="{{ $url }}" @if ($active) aria-current="page" @endif
-                        class="whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition {{ $active ? 'bg-white/10' : 'text-[#b8bab8] hover:bg-white/5 hover:text-white' }}">{{ $label }}</a>
+                        class="whitespace-nowrap rounded-lg px-2.5 py-1.5 text-[13px] font-medium transition sm:px-3 sm:text-sm {{ $active ? 'bg-white/10' : 'text-[#b8bab8] hover:bg-white/5 hover:text-white' }}">{{ $label }}</a>
                 @endforeach
             </nav>
 

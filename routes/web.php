@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ReminderController;
+use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\TeamController;
 use Illuminate\Support\Facades\Route;
 
@@ -48,6 +50,20 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->n
 
 Route::middleware('auth')->group(function () {
     Route::view('/dashboard', 'dashboard.index')->name('dashboard');
+
+    Route::get('/reminders', [ReminderController::class, 'index'])->name('reminders.index');
+    Route::get('/reminders/due', [ReminderController::class, 'due'])->name('reminders.due');
+    Route::get('/reminders/create', [ReminderController::class, 'create'])->name('reminders.create');
+    Route::post('/reminders', [ReminderController::class, 'store'])->name('reminders.store');
+    Route::get('/reminders/{reminder}/edit', [ReminderController::class, 'edit'])->name('reminders.edit');
+    Route::patch('/reminders/{reminder}', [ReminderController::class, 'update'])->name('reminders.update');
+    Route::delete('/reminders/{reminder}', [ReminderController::class, 'destroy'])->name('reminders.destroy');
+    Route::post('/reminders/{reminder}/done', [ReminderController::class, 'done'])->name('reminders.done');
+    Route::post('/reminders/{reminder}/snooze', [ReminderController::class, 'snooze'])->name('reminders.snooze');
+    Route::post('/reminders/{reminder}/skip', [ReminderController::class, 'skip'])->name('reminders.skip');
+
+    Route::get('/settings', [SettingsController::class, 'edit'])->name('settings.edit');
+    Route::patch('/settings', [SettingsController::class, 'update'])->name('settings.update');
 
     Route::get('/teams', [TeamController::class, 'index'])->name('teams.index');
     Route::get('/teams/{team}', [TeamController::class, 'show'])->name('teams.show');
