@@ -3,7 +3,8 @@
 @php
     $editing = $reminder->exists;
     $type = old('type', $reminder->type ?? 'deadline');
-    $recurrence = old('recurrence', $reminder->recurrence ?? 'weekly');
+    $recurrence = (string) old('recurrence', $reminder->recurrence);
+    $frequency = old('frequency', $reminder->exists && $reminder->interval_minutes === null ? 'daily' : ($reminder->exists ? 'interval' : 'daily'));
     $pickedWeekdays = array_map('intval', (array) old('weekdays', $reminder->weekdayList()));
     $pickedMonthDays = array_map('intval', (array) old('month_days', $reminder->monthDayList()));
     $dayNames = [1 => 'Mon', 2 => 'Tue', 3 => 'Wed', 4 => 'Thu', 5 => 'Fri', 6 => 'Sat', 7 => 'Sun'];
@@ -37,26 +38,47 @@
 
         <fieldset>
             <legend class="mb-2 text-sm text-[#b8bab8]">Kind of reminder</legend>
-            <div class="grid gap-3 sm:grid-cols-3">
+            <div class="grid gap-3 sm:grid-cols-2">
                 <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-[#1d1d1a] p-4 has-[:checked]:border-[#1da15e]">
                     <input type="radio" name="type" value="deadline" @checked($type === 'deadline') class="mt-1 accent-[#1da15e]" data-type-radio>
                     <span><span class="block text-sm font-medium">Deadline</span><span class="text-xs text-[#b8bab8]">Reminds you more often as the deadline gets closer, until it is done.</span></span>
                 </label>
                 <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-[#1d1d1a] p-4 has-[:checked]:border-[#1da15e]">
                     <input type="radio" name="type" value="repeating" @checked($type === 'repeating') class="mt-1 accent-[#1da15e]" data-type-radio>
-                    <span><span class="block text-sm font-medium">Repeats during the day</span><span class="text-xs text-[#b8bab8]">Comes back every X minutes after you did it, for things you do several times a day.</span></span>
-                </label>
-                <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-[#1d1d1a] p-4 has-[:checked]:border-[#1da15e]">
-                    <input type="radio" name="type" value="scheduled" @checked($type === 'scheduled') class="mt-1 accent-[#1da15e]" data-type-radio>
-                    <span><span class="block text-sm font-medium">On chosen days</span><span class="text-xs text-[#b8bab8]">Comes back on the weekdays or days of the month you pick, until it is done.</span></span>
+                    <span><span class="block text-sm font-medium">Recurring</span><span class="text-xs text-[#b8bab8]">Comes back on the days you choose, once a day or several times a day.</span></span>
                 </label>
             </div>
         </fieldset>
 
-        <div class="space-y-4" data-type-panel="scheduled">
-            <div class="flex gap-3">
-                <label class="{{ $chip }} flex-1"><input type="radio" name="recurrence" value="weekly" @checked($recurrence !== 'monthly') class="sr-only" data-recurrence>Every week</label>
-                <label class="{{ $chip }} flex-1"><input type="radio" name="recurrence" value="monthly" @checked($recurrence === 'monthly') class="sr-only" data-recurrence>Every month</label>
+        <div class="space-y-4" data-type-panel="deadline">
+            <div class="grid gap-4 sm:grid-cols-2">
+                <div>
+                    <label for="due_at" class="mb-1 block text-sm text-[#b8bab8]">Deadline ({{ $user->timezone }})</label>
+                    <input id="due_at" name="due_at" type="datetime-local" value="{{ $dueValue }}" class="{{ $inputClass }}">
+                </div>
+                <div>
+                    <label for="lead_minutes" class="mb-1 block text-sm text-[#b8bab8]">Start reminding</label>
+                    <select id="lead_minutes" name="lead_minutes" class="{{ $inputClass }}">
+                        @foreach ($leadOptions as $minutes => $label)
+                            <option value="{{ $minutes }}" @selected((int) old('lead_minutes', $reminder->lead_minutes) === $minutes)>{{ $label }} before</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+            <label class="flex items-start gap-3 text-sm">
+                <input type="checkbox" name="ignore_work_hours_when_overdue" value="1" @checked(old('ignore_work_hours_when_overdue', $reminder->ignore_work_hours_when_overdue)) class="mt-0.5 size-4 accent-[#1da15e]">
+                <span>Keep reminding me when it is overdue, even outside my work hours</span>
+            </label>
+        </div>
+
+        <div class="space-y-5" data-type-panel="repeating">
+            <div>
+                <p class="mb-2 text-sm text-[#b8bab8]">Which days</p>
+                <div class="grid gap-2 sm:grid-cols-3">
+                    <label class="{{ $chip }}"><input type="radio" name="recurrence" value="" @checked($recurrence === '') class="sr-only" data-recurrence>Every work day</label>
+                    <label class="{{ $chip }}"><input type="radio" name="recurrence" value="weekly" @checked($recurrence === 'weekly') class="sr-only" data-recurrence>Chosen weekdays</label>
+                    <label class="{{ $chip }}"><input type="radio" name="recurrence" value="monthly" @checked($recurrence === 'monthly') class="sr-only" data-recurrence>Days of the month</label>
+                </div>
             </div>
 
             <div data-recurrence-panel="weekly">
@@ -85,39 +107,26 @@
 
             <p class="hidden rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-200" data-offday-notice></p>
             <p class="text-xs text-[#b8bab8]" data-schedule-preview></p>
-            <p class="text-xs text-[#b8bab8]">The first reminder comes {{ \App\Services\Reminders\RecurrenceSchedule::START_DELAY_MINUTES }} minutes after your work day starts ({{ $startsAt }}), then it nags until you mark it done. A day you choose always counts, also when it is not one of your work days.</p>
-        </div>
 
-        <div class="space-y-4" data-type-panel="deadline">
-            <div class="grid gap-4 sm:grid-cols-2">
-                <div>
-                    <label for="due_at" class="mb-1 block text-sm text-[#b8bab8]">Deadline ({{ $user->timezone }})</label>
-                    <input id="due_at" name="due_at" type="datetime-local" value="{{ $dueValue }}" class="{{ $inputClass }}">
+            <div>
+                <p class="mb-2 text-sm text-[#b8bab8]">How often on those days</p>
+                <div class="grid gap-2 sm:grid-cols-2">
+                    <label class="{{ $chip }}"><input type="radio" name="frequency" value="daily" @checked($frequency === 'daily') class="sr-only" data-frequency>Once a day</label>
+                    <label class="{{ $chip }}"><input type="radio" name="frequency" value="interval" @checked($frequency === 'interval') class="sr-only" data-frequency>Several times a day</label>
                 </div>
-                <div>
-                    <label for="lead_minutes" class="mb-1 block text-sm text-[#b8bab8]">Start reminding</label>
-                    <select id="lead_minutes" name="lead_minutes" class="{{ $inputClass }}">
-                        @foreach ($leadOptions as $minutes => $label)
-                            <option value="{{ $minutes }}" @selected((int) old('lead_minutes', $reminder->lead_minutes) === $minutes)>{{ $label }} before</option>
-                        @endforeach
-                    </select>
-                </div>
+                <p class="mt-2 text-xs text-[#b8bab8]" data-frequency-panel="daily">The first reminder comes {{ \App\Services\Reminders\RecurrenceSchedule::START_DELAY_MINUTES }} minutes after your work day starts ({{ $startsAt }}), then it nags until you mark it done. A day you choose always counts, also when it is not one of your work days.</p>
             </div>
-            <label class="flex items-start gap-3 text-sm">
-                <input type="checkbox" name="ignore_work_hours_when_overdue" value="1" @checked(old('ignore_work_hours_when_overdue', $reminder->ignore_work_hours_when_overdue)) class="mt-0.5 size-4 accent-[#1da15e]">
-                <span>Keep reminding me when it is overdue, even outside my work hours</span>
-            </label>
-        </div>
 
-        <div class="space-y-4" data-type-panel="repeating">
-            <div class="grid gap-4 sm:grid-cols-2">
+            <div class="grid gap-4 sm:grid-cols-2" data-frequency-panel="interval">
                 <div>
                     <label for="interval_minutes" class="mb-1 block text-sm text-[#b8bab8]">Come back every (minutes)</label>
                     <input id="interval_minutes" name="interval_minutes" type="number" min="5" max="1440" value="{{ old('interval_minutes', $reminder->interval_minutes ?? 60) }}" class="{{ $inputClass }}">
+                    <p class="mt-1 text-xs text-[#b8bab8]">After you mark it done. The timer rolls on from then.</p>
                 </div>
                 <div>
                     <label for="daily_target" class="mb-1 block text-sm text-[#b8bab8]">Times per day (optional)</label>
                     <input id="daily_target" name="daily_target" type="number" min="1" max="50" value="{{ old('daily_target', $reminder->daily_target) }}" class="{{ $inputClass }}">
+                    <p class="mt-1 text-xs text-[#b8bab8]">When reached, it waits for the next day.</p>
                 </div>
             </div>
         </div>
@@ -125,7 +134,7 @@
         <div>
             <label for="nag_minutes" class="mb-1 block text-sm text-[#b8bab8]">If I ignore it, remind me again every (minutes)</label>
             <input id="nag_minutes" name="nag_minutes" type="number" min="1" max="1440" placeholder="Automatic" value="{{ old('nag_minutes', $reminder->nag_minutes) }}" class="{{ $inputClass }}">
-            <p class="mt-1 text-xs text-[#b8bab8]">Leave empty for automatic: a deadline gets faster reminders as it gets closer (every hour, then 30, 10 and 5 minutes), a repeating reminder or one on chosen days nags every 10 minutes.</p>
+            <p class="mt-1 text-xs text-[#b8bab8]">Leave empty for automatic: a deadline gets faster reminders as it gets closer (every hour, then 30, 10 and 5 minutes), a recurring reminder nags every 10 minutes.</p>
         </div>
 
         @if ($teams->isNotEmpty())
@@ -215,15 +224,21 @@
             }
 
             function scheduleHints() {
-                var weekly = (form.querySelector('[data-recurrence]:checked') || {}).value !== 'monthly';
-                var days = weekly ? ticked('[data-weekday]') : ticked('[data-monthday]');
+                var mode = (form.querySelector('[data-recurrence]:checked') || {}).value || '';
+                var weekly = mode !== 'monthly';
+                var days = mode === 'weekly' ? ticked('[data-weekday]') : (mode === 'monthly' ? ticked('[data-monthday]') : workDays);
 
                 form.querySelectorAll('[data-recurrence-panel]').forEach(function (panel) {
-                    panel.hidden = (panel.getAttribute('data-recurrence-panel') === 'weekly') !== weekly;
+                    panel.hidden = panel.getAttribute('data-recurrence-panel') !== mode;
+                });
+
+                var frequency = (form.querySelector('[data-frequency]:checked') || {}).value || 'daily';
+                form.querySelectorAll('[data-frequency-panel]').forEach(function (panel) {
+                    panel.hidden = panel.getAttribute('data-frequency-panel') !== frequency;
                 });
 
                 var notice = form.querySelector('[data-offday-notice]');
-                var off = weekly ? days.filter(function (day) { return workDays.indexOf(day) === -1; }) : [];
+                var off = mode === 'weekly' ? days.filter(function (day) { return workDays.indexOf(day) === -1; }) : [];
                 notice.textContent = off.length ? off.map(function (day) { return dayNames[day]; }).join(' and ') + (off.length > 1 ? ' are not work days' : ' is not a work day') + ' for you. The reminder will still come on ' + (off.length > 1 ? 'those days' : 'that day') + '.' : '';
                 notice.classList.toggle('hidden', !off.length);
 

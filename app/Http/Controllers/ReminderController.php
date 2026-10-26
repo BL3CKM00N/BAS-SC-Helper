@@ -221,11 +221,12 @@ class ReminderController extends Controller
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'notes' => ['nullable', 'string', 'max:2000'],
-            'type' => ['required', Rule::in([Reminder::DEADLINE, Reminder::REPEATING, Reminder::SCHEDULED])],
-            'recurrence' => ['required_if:type,'.Reminder::SCHEDULED, 'nullable', Rule::in([Reminder::WEEKLY, Reminder::MONTHLY])],
-            'weekdays' => ['required_if:recurrence,'.Reminder::WEEKLY, 'nullable', 'array'],
+            'type' => ['required', Rule::in([Reminder::DEADLINE, Reminder::REPEATING])],
+            'recurrence' => ['nullable', Rule::in([Reminder::WEEKLY, Reminder::MONTHLY])],
+            'frequency' => ['nullable', Rule::in(['daily', 'interval'])],
+            'weekdays' => [Rule::requiredIf(fn () => $request->input('type') === Reminder::REPEATING && $request->input('recurrence') === Reminder::WEEKLY), 'nullable', 'array'],
             'weekdays.*' => ['integer', 'between:1,7'],
-            'month_days' => ['required_if:recurrence,'.Reminder::MONTHLY, 'nullable', 'array'],
+            'month_days' => [Rule::requiredIf(fn () => $request->input('type') === Reminder::REPEATING && $request->input('recurrence') === Reminder::MONTHLY), 'nullable', 'array'],
             'month_days.*' => ['integer', 'between:-1,31', 'not_in:0'],
             'team_id' => ['nullable', 'integer', 'exists:teams,id'],
             'assignee_id' => ['nullable', 'integer', 'exists:users,id'],
@@ -233,20 +234,20 @@ class ReminderController extends Controller
             'due_at' => ['required_if:type,'.Reminder::DEADLINE, 'nullable', 'date'],
             'lead_minutes' => ['nullable', 'integer', Rule::in(array_keys(self::LEAD_OPTIONS))],
             'nag_minutes' => ['nullable', 'integer', 'min:1', 'max:1440'],
-            'interval_minutes' => ['required_if:type,'.Reminder::REPEATING, 'nullable', 'integer', 'min:5', 'max:1440'],
+            'interval_minutes' => [Rule::requiredIf(fn () => $request->input('type') === Reminder::REPEATING && $request->input('frequency') !== 'daily'), 'nullable', 'integer', 'min:5', 'max:1440'],
             'daily_target' => ['nullable', 'integer', 'min:1', 'max:50'],
         ], [
             'due_at.required_if' => 'A deadline needs a date and time.',
-            'interval_minutes.required_if' => 'A repeating reminder needs an interval.',
-            'recurrence.required_if' => 'Choose weekly or monthly.',
+            'interval_minutes.required_if' => 'Say how many minutes it should wait before coming back.',
             'weekdays.required_if' => 'Pick at least one weekday.',
             'month_days.required_if' => 'Pick at least one day of the month.',
         ]);
 
         $deadline = $data['type'] === Reminder::DEADLINE;
         $repeating = $data['type'] === Reminder::REPEATING;
-        $scheduled = $data['type'] === Reminder::SCHEDULED;
-        $monthly = $scheduled && $data['recurrence'] === Reminder::MONTHLY;
+        $recurrence = $repeating ? ($data['recurrence'] ?? null) : null;
+        $monthly = $recurrence === Reminder::MONTHLY;
+        $interval = $repeating && ($data['frequency'] ?? 'interval') === 'interval';
         $list = fn (?array $values) => collect($values)->map(fn ($value) => (int) $value)->unique()->sort()->implode(',');
 
         return [
@@ -259,10 +260,10 @@ class ReminderController extends Controller
             'due_at' => $deadline ? CarbonImmutable::parse($data['due_at'], $user->timezone)->utc() : null,
             'lead_minutes' => $data['lead_minutes'] ?? 240,
             'nag_minutes' => $data['nag_minutes'] ?? null,
-            'interval_minutes' => $repeating ? (int) $data['interval_minutes'] : null,
-            'daily_target' => $repeating ? ($data['daily_target'] ?? null) : null,
-            'recurrence' => $scheduled ? $data['recurrence'] : null,
-            'weekdays' => $scheduled && ! $monthly ? $list($data['weekdays'] ?? []) : null,
+            'interval_minutes' => $interval ? (int) $data['interval_minutes'] : null,
+            'daily_target' => $interval ? ($data['daily_target'] ?? null) : null,
+            'recurrence' => $recurrence,
+            'weekdays' => $recurrence === Reminder::WEEKLY ? $list($data['weekdays'] ?? []) : null,
             'month_days' => $monthly ? $list($data['month_days'] ?? []) : null,
             'ignore_work_hours_when_overdue' => $deadline && $request->boolean('ignore_work_hours_when_overdue'),
         ];

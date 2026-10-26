@@ -10,7 +10,7 @@ use DateTimeZone;
 use Throwable;
 
 /**
- * When a reminder "on chosen days" comes back, in the time zone of each person.
+ * When a recurring reminder that follows days (chosen days, or once a day) comes back, in the time zone of each person.
  *
  * The first notification of a chosen day goes out START_DELAY_MINUTES after that person's work day starts.
  * A chosen day counts even when it is not one of the person's work days: on such a day the person's work
@@ -24,10 +24,17 @@ final class RecurrenceSchedule
     private const LOOKAHEAD_DAYS = 400;
 
     /**
-     * Does the reminder come back on this (local) day?
+     * Does the reminder come back on this (local) day of this person?
      */
-    public static function matches(Reminder $reminder, CarbonInterface $localDay): bool
+    public static function matches(Reminder $reminder, User $user, CarbonInterface $localDay): bool
     {
+        if ($reminder->recurrence === null) {
+            // Every work day: the person's own working days (none set means every day).
+            $days = array_values(array_filter(array_map('intval', explode(',', (string) $user->work_days)), fn (int $day) => $day >= 1 && $day <= 7));
+
+            return $days === [] || in_array($localDay->dayOfWeekIso, $days, true);
+        }
+
         if ($reminder->recurrence === Reminder::MONTHLY) {
             $last = $localDay->daysInMonth;
 
@@ -61,7 +68,7 @@ final class RecurrenceSchedule
     {
         $local = self::local($user, $at);
 
-        return self::matches($reminder, $local)
+        return self::matches($reminder, $user, $local)
             && $local >= self::at($local, $user->work_start)
             && $local < self::at($local, $user->work_end);
     }
@@ -74,7 +81,7 @@ final class RecurrenceSchedule
     {
         $local = self::local($user, $now);
 
-        if (self::matches($reminder, $local) && $local < self::at($local, $user->work_end)) {
+        if (self::matches($reminder, $user, $local) && $local < self::at($local, $user->work_end)) {
             return max(self::startOn($user, $local), $local)->utc();
         }
 
@@ -91,7 +98,7 @@ final class RecurrenceSchedule
         for ($i = 1; $i <= self::LOOKAHEAD_DAYS; $i++) {
             $day = $local->addDays($i);
 
-            if (self::matches($reminder, $day)) {
+            if (self::matches($reminder, $user, $day)) {
                 return self::startOn($user, $day)->utc();
             }
         }
@@ -111,7 +118,7 @@ final class RecurrenceSchedule
 
         $local = self::local($user, $at);
 
-        if (self::matches($reminder, $local) && $local < self::at($local, $user->work_start)) {
+        if (self::matches($reminder, $user, $local) && $local < self::at($local, $user->work_start)) {
             return self::startOn($user, $local)->utc();
         }
 

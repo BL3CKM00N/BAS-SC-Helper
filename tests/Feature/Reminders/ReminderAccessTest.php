@@ -229,7 +229,7 @@ class ReminderAccessTest extends TestCase
         $user = User::factory()->create();
         $this->teamWith($user);
 
-        $this->actingAs($user)->get('/reminders/create')->assertOk()->assertSee('Deadline')->assertSee('Repeats during the day');
+        $this->actingAs($user)->get('/reminders/create')->assertOk()->assertSee('Deadline')->assertSee('Recurring');
         $this->actingAs($user)->get(route('reminders.edit', $this->make(['created_by' => $user->id])))->assertOk();
     }
 

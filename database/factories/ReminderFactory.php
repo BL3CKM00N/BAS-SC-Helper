@@ -36,13 +36,23 @@ class ReminderFactory extends Factory
     }
 
     /**
+     * Once a day, on every work day of the person.
+     */
+    public function oncePerWorkday(): static
+    {
+        return $this->state(fn () => ['type' => Reminder::REPEATING, 'due_at' => null, 'interval_minutes' => null]);
+    }
+
+    /**
      * @param  list<int>  $weekdays  ISO weekdays, 1 is Monday
      */
-    public function onWeekdays(array $weekdays): static
+    public function onWeekdays(array $weekdays, ?int $everyMinutes = null, ?int $dailyTarget = null): static
     {
         return $this->state(fn () => [
-            'type' => Reminder::SCHEDULED,
+            'type' => Reminder::REPEATING,
             'due_at' => null,
+            'interval_minutes' => $everyMinutes,
+            'daily_target' => $dailyTarget,
             'recurrence' => Reminder::WEEKLY,
             'weekdays' => implode(',', $weekdays),
         ]);
@@ -51,11 +61,12 @@ class ReminderFactory extends Factory
     /**
      * @param  list<int>  $days  days of the month, -1 is the last day
      */
-    public function onMonthDays(array $days): static
+    public function onMonthDays(array $days, ?int $everyMinutes = null): static
     {
         return $this->state(fn () => [
-            'type' => Reminder::SCHEDULED,
+            'type' => Reminder::REPEATING,
             'due_at' => null,
+            'interval_minutes' => $everyMinutes,
             'recurrence' => Reminder::MONTHLY,
             'month_days' => implode(',', $days),
         ]);

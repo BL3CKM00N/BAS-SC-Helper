@@ -20,8 +20,6 @@ class Reminder extends Model
 
     public const REPEATING = 'repeating';
 
-    public const SCHEDULED = 'scheduled';
-
     public const WEEKLY = 'weekly';
 
     public const MONTHLY = 'monthly';
@@ -100,11 +98,12 @@ class Reminder extends Model
     }
 
     /**
-     * A reminder that comes back on chosen weekdays or days of the month.
+     * A recurring reminder that is planned per day: it has chosen weekdays or days of the month, or it comes
+     * once a day. The others (every work day, every X minutes) run on a rolling timer.
      */
-    public function isScheduled(): bool
+    public function followsDays(): bool
     {
-        return $this->type === self::SCHEDULED;
+        return $this->isRepeating() && ($this->recurrence !== null || $this->interval_minutes === null);
     }
 
     /**
@@ -126,9 +125,14 @@ class Reminder extends Model
     }
 
     /**
-     * The schedule in words: "Every Mon, Wed, Fri" or "Monthly on the 1st, 15th and last day".
+     * The schedule in words: "Every Mon, Wed, Fri", "Monthly on the 1st and last day, every 90 min".
      */
     public function scheduleLabel(): string
+    {
+        return $this->daysLabel().($this->interval_minutes ? ', every '.$this->interval_minutes.' min' : '');
+    }
+
+    private function daysLabel(): string
     {
         if ($this->recurrence === self::MONTHLY) {
             $days = collect($this->monthDayList())->sortBy(fn (int $day) => $day === -1 ? 99 : $day)->map(
@@ -136,6 +140,10 @@ class Reminder extends Model
             )->values();
 
             return 'Monthly on the '.($days->count() > 1 ? $days->slice(0, -1)->implode(', ').' and '.$days->last() : $days->first());
+        }
+
+        if ($this->recurrence === null) {
+            return 'Every work day';
         }
 
         $names = [1 => 'Mon', 2 => 'Tue', 3 => 'Wed', 4 => 'Thu', 5 => 'Fri', 6 => 'Sat', 7 => 'Sun'];

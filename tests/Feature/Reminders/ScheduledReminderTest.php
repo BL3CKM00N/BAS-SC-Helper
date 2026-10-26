@@ -199,7 +199,7 @@ class ScheduledReminderTest extends TestCase
         $user = User::factory()->create();
 
         $this->actingAs($user)->post(route('reminders.store'), [
-            'title' => 'Check the weekly report', 'type' => 'scheduled', 'recurrence' => 'weekly', 'weekdays' => [5, 1, 1],
+            'title' => 'Check the weekly report', 'type' => 'repeating', 'recurrence' => 'weekly', 'frequency' => 'daily', 'weekdays' => [5, 1, 1],
         ])->assertRedirect(route('reminders.index'));
 
         $reminder = Reminder::query()->firstOrFail();
@@ -213,12 +213,12 @@ class ScheduledReminderTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $this->actingAs($user)->post(route('reminders.store'), ['title' => 'x', 'type' => 'scheduled', 'recurrence' => 'weekly'])
+        $this->actingAs($user)->post(route('reminders.store'), ['title' => 'x', 'type' => 'repeating', 'recurrence' => 'weekly', 'frequency' => 'daily'])
             ->assertSessionHasErrors('weekdays');
-        $this->actingAs($user)->post(route('reminders.store'), ['title' => 'x', 'type' => 'scheduled', 'recurrence' => 'monthly', 'month_days' => [0]])
+        $this->actingAs($user)->post(route('reminders.store'), ['title' => 'x', 'type' => 'repeating', 'recurrence' => 'monthly', 'frequency' => 'daily', 'month_days' => [0]])
             ->assertSessionHasErrors('month_days.0');
-        $this->actingAs($user)->post(route('reminders.store'), ['title' => 'x', 'type' => 'scheduled'])
-            ->assertSessionHasErrors('recurrence');
+        $this->actingAs($user)->post(route('reminders.store'), ['title' => 'x', 'type' => 'repeating', 'frequency' => 'interval'])
+            ->assertSessionHasErrors('interval_minutes');
     }
 
     public function test_changing_the_days_reschedules(): void
@@ -229,11 +229,25 @@ class ScheduledReminderTest extends TestCase
         $before = $this->recipient($reminder, $user)->next_notify_at;
 
         $this->actingAs($user)->patch(route('reminders.update', $reminder), [
-            'title' => $reminder->title, 'type' => 'scheduled', 'recurrence' => 'weekly', 'weekdays' => [1, 2, 3, 4, 5, 6, 7],
+            'title' => $reminder->title, 'type' => 'repeating', 'recurrence' => 'weekly', 'frequency' => 'daily', 'weekdays' => [1, 2, 3, 4, 5, 6, 7],
         ])->assertRedirect();
 
         $this->assertNotEquals($before, $this->recipient($reminder->fresh(), $user)->next_notify_at);
         $this->assertSame('1,2,3,4,5,6,7', $reminder->fresh()->weekdays);
+    }
+
+    public function test_the_schedule_fields_of_other_kinds_do_not_get_in_the_way(): void
+    {
+        $user = User::factory()->create();
+
+        // The form always sends the day choice, also for a deadline: it must be ignored.
+        $this->actingAs($user)->post(route('reminders.store'), [
+            'title' => 'Deadline', 'type' => 'deadline', 'due_at' => now()->addDay()->format('Y-m-d\TH:i'), 'recurrence' => 'weekly', 'frequency' => 'daily',
+        ])->assertSessionHasNoErrors();
+
+        $reminder = Reminder::query()->firstOrFail();
+        $this->assertNull($reminder->recurrence);
+        $this->assertNull($reminder->weekdays);
     }
 
     public function test_the_form_and_list_render(): void
@@ -242,8 +256,62 @@ class ScheduledReminderTest extends TestCase
         $reminder = Reminder::factory()->onWeekdays([2, 4])->create(['created_by' => $user->id, 'title' => 'Tuesday thing']);
         $this->engine->sync($reminder);
 
-        $this->actingAs($user)->get(route('reminders.create'))->assertOk()->assertSee('On chosen days')->assertSee('Last day');
+        $this->actingAs($user)->get(route('reminders.create'))->assertOk()->assertSee('Recurring')->assertSee('Chosen weekdays')->assertSee('Last day');
         $this->actingAs($user)->get(route('reminders.index'))->assertOk()->assertSee('Every Tue, Thu');
         $this->actingAs($user)->get(route('reminders.edit', $reminder))->assertOk();
+    }
+
+    public function test_every_work_day_once_a_day_follows_the_persons_own_work_days(): void
+    {
+        $user = User::factory()->create(['work_days' => '2,4']); // Tuesday and Thursday
+        $reminder = Reminder::factory()->oncePerWorkday()->create(['created_by' => $user->id]);
+
+        $this->engine->sync($reminder, $this->at('2026-10-26 07:00')); // a Monday
+
+        $this->assertEquals($this->at('2026-10-27 08:15'), $this->recipient($reminder, $user)->next_notify_at);
+
+        $this->engine->done($this->recipient($reminder, $user), $this->at('2026-10-27 10:00'));
+        $this->assertEquals($this->at('2026-10-29 08:15'), $this->recipient($reminder, $user)->next_notify_at);
+        $this->assertSame('Every work day', $reminder->scheduleLabel());
+    }
+
+    public function test_chosen_days_can_repeat_during_the_day(): void
+    {
+        $user = User::factory()->create();
+        $reminder = Reminder::factory()->onWeekdays([1, 3], 120, 2)->create(['created_by' => $user->id]);
+        $this->engine->sync($reminder, $this->at('2026-10-26 07:00'));
+
+        $this->assertSame(1, $this->engine->sendDue($this->at('2026-10-26 08:15')));
+
+        $this->engine->done($this->recipient($reminder, $user), $this->at('2026-10-26 09:00'));
+        $this->assertEquals($this->at('2026-10-26 11:00'), $this->recipient($reminder, $user)->next_notify_at, 'the timer rolls on 2 hours after Done');
+
+        $this->engine->done($this->recipient($reminder, $user), $this->at('2026-10-26 11:05'));
+        $this->assertEquals($this->at('2026-10-28 08:15'), $this->recipient($reminder, $user)->next_notify_at, 'the daily target of 2 is reached');
+        $this->assertSame('Every Mon, Wed, every 120 min', $reminder->scheduleLabel());
+    }
+
+    public function test_a_repeat_that_would_land_after_work_hours_moves_to_the_next_chosen_day(): void
+    {
+        $user = User::factory()->create();
+        $reminder = Reminder::factory()->onWeekdays([1, 3], 120)->create(['created_by' => $user->id]);
+        $this->engine->sync($reminder, $this->at('2026-10-26 07:00'));
+        $this->engine->sendDue($this->at('2026-10-26 08:15'));
+
+        $this->engine->done($this->recipient($reminder, $user), $this->at('2026-10-26 16:30'));
+
+        $this->assertEquals($this->at('2026-10-28 08:15'), $this->recipient($reminder, $user)->next_notify_at);
+    }
+
+    public function test_the_old_repeating_reminder_is_unchanged(): void
+    {
+        $user = User::factory()->create();
+        $reminder = Reminder::factory()->repeating(90)->create(['created_by' => $user->id]);
+
+        $this->assertFalse($reminder->followsDays());
+        $this->engine->sync($reminder, $this->at('2026-10-26 10:00'));
+        $this->engine->done($this->recipient($reminder, $user), $this->at('2026-10-26 10:00'));
+
+        $this->assertEquals($this->at('2026-10-26 11:30'), $this->recipient($reminder, $user)->next_notify_at);
     }
 }

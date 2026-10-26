@@ -89,7 +89,7 @@ class ReminderEngine
 
     public function firstNotification(Reminder $reminder, User $user, CarbonImmutable $now): CarbonImmutable
     {
-        if ($reminder->isScheduled()) {
+        if ($reminder->followsDays()) {
             return RecurrenceSchedule::current($reminder, $user, $now);
         }
 
@@ -131,7 +131,7 @@ class ReminderEngine
      */
     public function shift(Reminder $reminder, User $user, CarbonImmutable $at): CarbonImmutable
     {
-        if ($reminder->isScheduled()) {
+        if ($reminder->followsDays()) {
             return RecurrenceSchedule::nextNag($reminder, $user, $at);
         }
 
@@ -174,7 +174,7 @@ class ReminderEngine
                 $reminder = $recipient->reminder;
                 $user = $recipient->user;
 
-                if ($reminder->isScheduled()) {
+                if ($reminder->followsDays()) {
                     // A new chosen day replaces a notification that was never answered.
                     if ($recipient->pending_since && ! $this->sameLocalDay($user, $recipient->pending_since, $now)) {
                         $this->log($reminder, $user, ReminderEvent::MISSED, $now, ['since' => $recipient->pending_since->toIso8601String()]);
@@ -261,7 +261,7 @@ class ReminderEngine
     public function skipToday(ReminderRecipient $recipient, ?CarbonInterface $now = null): void
     {
         $now = $this->now($now);
-        $until = $recipient->reminder->isScheduled()
+        $until = $recipient->reminder->followsDays()
             ? RecurrenceSchedule::nextAfterToday($recipient->reminder, $recipient->user, $now)
             : WorkHours::startOfNextWorkday($recipient->user, $now);
 
@@ -279,23 +279,19 @@ class ReminderEngine
     {
         $user = $recipient->user;
 
-        if ($reminder->isScheduled()) {
-            $recipient->forceFill([
-                'pending_since' => null,
-                'snoozed_until' => null,
-                'skipped_until' => null,
-                'next_notify_at' => RecurrenceSchedule::nextAfterToday($reminder, $user, $now),
-            ])->save();
-
-            return;
-        }
-
         $targetReached = $reminder->daily_target
             && $this->doneToday($reminder, $user, $now) >= $reminder->daily_target;
 
-        $next = $targetReached
-            ? WorkHours::startOfNextWorkday($user, $now)
-            : $this->shift($reminder, $user, $now->addMinutes((int) $reminder->interval_minutes));
+        if ($reminder->followsDays()) {
+            // Once a day, or the daily target reached: the next chosen day. Otherwise the timer runs on inside the day.
+            $next = $reminder->interval_minutes === null || $targetReached
+                ? RecurrenceSchedule::nextAfterToday($reminder, $user, $now)
+                : $this->shift($reminder, $user, $now->addMinutes($reminder->interval_minutes));
+        } else {
+            $next = $targetReached
+                ? WorkHours::startOfNextWorkday($user, $now)
+                : $this->shift($reminder, $user, $now->addMinutes((int) $reminder->interval_minutes));
+        }
 
         $recipient->forceFill([
             'pending_since' => null,
@@ -339,7 +335,7 @@ class ReminderEngine
             ->with('reminder.team')
             ->get()
             ->filter(fn (ReminderRecipient $recipient) => $recipient->pending_since
-                || ($recipient->reminder->isScheduled()
+                || ($recipient->reminder->followsDays()
                     ? RecurrenceSchedule::isActive($recipient->reminder, $user, $now)
                     : WorkHours::isWorkingTime($user, $now) || $this->ignoresWorkHours($recipient->reminder, $now)))
             ->sortBy(fn (ReminderRecipient $recipient) => $recipient->pending_since ?? $recipient->next_notify_at)
