@@ -43,13 +43,15 @@
                 <button type="submit" class="rounded-lg bg-[#1da15e] px-4 py-1.5 text-sm font-medium transition hover:bg-[#178a4f]">Done</button>
             </form>
 
-            <form method="POST" action="{{ route('reminders.snooze', $reminder) }}" class="flex items-center gap-1">
-                @csrf
-                <span class="mr-1 text-xs text-[#b8bab8]">Snooze</span>
-                @foreach ([10, 30, 60] as $minutes)
-                    <button type="submit" name="minutes" value="{{ $minutes }}" class="rounded-lg border border-white/15 px-2.5 py-1.5 text-xs transition hover:bg-white/5">{{ $minutes === 60 ? '1 h' : $minutes.' min' }}</button>
-                @endforeach
-            </form>
+            <details class="group relative" data-snooze>
+                <summary class="cursor-pointer list-none rounded-lg border border-white/15 px-2.5 py-1.5 text-xs text-[#b8bab8] transition marker:hidden hover:bg-white/5 group-open:bg-white/10 [&::-webkit-details-marker]:hidden">Snooze</summary>
+                <form method="POST" action="{{ route('reminders.snooze', $reminder) }}" class="absolute left-0 top-full z-10 mt-1 flex w-max items-center gap-1 rounded-lg border border-white/15 bg-[#262623] p-1.5 shadow-lg">
+                    @csrf
+                    @foreach ([10, 30, 60] as $minutes)
+                        <button type="submit" name="minutes" value="{{ $minutes }}" class="rounded-lg border border-white/15 px-2.5 py-1.5 text-xs transition hover:bg-white/5">{{ $minutes === 60 ? '1 h' : $minutes.' min' }}</button>
+                    @endforeach
+                </form>
+            </details>
 
             <form method="POST" action="{{ route('reminders.skip', $reminder) }}"
                 data-confirm="&quot;{{ $reminder->title }}&quot; will be hidden until your next working day."
@@ -57,6 +59,10 @@
                 @csrf
                 <button type="submit" class="rounded-lg border border-white/15 px-2.5 py-1.5 text-xs text-[#b8bab8] transition hover:bg-white/5">Skip today</button>
             </form>
+
+            @can('update', $reminder)
+                <a href="{{ route('reminders.edit', $reminder) }}" class="rounded-lg border border-white/15 px-2.5 py-1.5 text-xs text-[#b8bab8] transition hover:bg-white/5">Edit</a>
+            @endcan
         </div>
     </article>
 @empty

@@ -48,7 +48,12 @@ if (container) {
                 const fresh = [...ids].some((id) => !known.has(id));
 
                 if (!reloadAfterAction || fresh || ids.size !== known.size) {
+                    // A snooze menu the person has open stays open.
+                    const open = [...container.querySelectorAll('[data-snooze][open]')].map((el) => el.closest('[data-reminder-id]')?.dataset.reminderId);
+
                     container.innerHTML = data.html;
+
+                    open.forEach((id) => container.querySelector(`[data-reminder-id="${id}"] [data-snooze]`)?.setAttribute('open', ''));
                 }
 
                 if (fresh) alertUser();

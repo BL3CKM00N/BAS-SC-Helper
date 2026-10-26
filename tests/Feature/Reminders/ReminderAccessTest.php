@@ -357,4 +357,17 @@ class ReminderAccessTest extends TestCase
 
         $this->assertSame('08:00', $user->fresh()->work_start);
     }
+
+    public function test_a_due_reminder_has_an_edit_link_and_a_collapsed_snooze_menu(): void
+    {
+        $user = User::factory()->create();
+        $reminder = $this->make(['created_by' => $user->id]);
+        $reminder->recipients()->firstOrFail()->update(['pending_since' => now()->subMinute()]);
+
+        $html = $this->actingAs($user)->getJson(route('reminders.due'))->assertOk()->json('html');
+
+        $this->assertStringContainsString(route('reminders.edit', $reminder), $html);
+        $this->assertMatchesRegularExpression('/<details[^>]*data-snooze[^>]*>/', $html);
+        $this->assertDoesNotMatchRegularExpression('/<details[^>]*open/', $html);
+    }
 }
