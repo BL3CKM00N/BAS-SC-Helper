@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'created_by', 'team_id', 'assignee_id', 'title', 'notes', 'type', 'due_at', 'lead_minutes', 'nag_minutes',
-    'interval_minutes', 'daily_target', 'recurrence', 'weekdays', 'month_days', 'completion_mode', 'ignore_work_hours_when_overdue', 'completed_at', 'archived_at',
+    'interval_minutes', 'daily_target', 'recurrence', 'weekdays', 'month_days', 'due_time', 'completion_mode', 'ignore_work_hours_when_overdue', 'completed_at', 'archived_at',
 ])]
 class Reminder extends Model
 {
@@ -129,7 +129,9 @@ class Reminder extends Model
      */
     public function scheduleLabel(): string
     {
-        return $this->daysLabel().($this->interval_minutes ? ', every '.$this->interval_minutes.' min' : '');
+        return $this->daysLabel()
+            .($this->interval_minutes ? ', every '.$this->interval_minutes.' min' : '')
+            .($this->due_time ? ', due '.$this->due_time : '');
     }
 
     private function daysLabel(): string

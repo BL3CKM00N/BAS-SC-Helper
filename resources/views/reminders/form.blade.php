@@ -114,7 +114,21 @@
                     <label class="{{ $chip }}"><input type="radio" name="frequency" value="daily" @checked($frequency === 'daily') class="sr-only" data-frequency>Once a day</label>
                     <label class="{{ $chip }}"><input type="radio" name="frequency" value="interval" @checked($frequency === 'interval') class="sr-only" data-frequency>Several times a day</label>
                 </div>
-                <p class="mt-2 text-xs text-[#b8bab8]" data-frequency-panel="daily">The first reminder comes {{ \App\Services\Reminders\RecurrenceSchedule::START_DELAY_MINUTES }} minutes after your work day starts ({{ $startsAt }}), then it nags until you mark it done. A day you choose always counts, also when it is not one of your work days.</p>
+                <div class="mt-3 grid gap-4 sm:grid-cols-2" data-frequency-panel="daily">
+                    <div>
+                        <label for="due_time" class="mb-1 block text-sm text-[#b8bab8]">Due by (optional, {{ $user->timezone }})</label>
+                        <input id="due_time" name="due_time" type="time" value="{{ old('due_time', $reminder->due_time) }}" class="{{ $inputClass }}">
+                    </div>
+                    <div>
+                        <label for="recurring_lead_minutes" class="mb-1 block text-sm text-[#b8bab8]">Start reminding</label>
+                        <select id="recurring_lead_minutes" name="recurring_lead_minutes" class="{{ $inputClass }}">
+                            @foreach ($leadOptions as $minutes => $label)
+                                <option value="{{ $minutes }}" @selected((int) old('recurring_lead_minutes', $reminder->lead_minutes) === $minutes)>{{ $label }} before</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+                <p class="mt-2 text-xs text-[#b8bab8]" data-frequency-panel="daily">Without a due time the first reminder comes {{ \App\Services\Reminders\RecurrenceSchedule::START_DELAY_MINUTES }} minutes after your work day starts ({{ $startsAt }}). With one, it starts that long before the due time, goes faster the closer it gets (every hour, then 30, 10 and 5 minutes) and keeps nagging every 5 minutes after it until your work day ends. Either way it nags until you mark it done. A day you choose always counts, also when it is not one of your work days.</p>
             </div>
 
             <div class="grid gap-4 sm:grid-cols-2" data-frequency-panel="interval">

@@ -106,18 +106,29 @@ class ReminderEngine
     /**
      * Minutes until the next nag: faster the closer the deadline gets.
      */
-    public function nagInterval(Reminder $reminder, CarbonInterface $now): int
+    public function nagInterval(Reminder $reminder, CarbonInterface $now, ?User $user = null): int
     {
         if ($reminder->nag_minutes) {
             return $reminder->nag_minutes;
+        }
+
+        // A recurring reminder with a due time speeds up towards it, like a deadline, and keeps nagging every 5 minutes once it is past.
+        if ($user && $reminder->followsDays() && ($due = RecurrenceSchedule::dueMoment($reminder, $user, $now))) {
+            return $this->speedUp($now->diffInMinutes($due, false));
         }
 
         if ($reminder->isRepeating() || ! $reminder->due_at) {
             return self::DEFAULT_REPEAT_NAG;
         }
 
-        $minutesLeft = $now->diffInMinutes($reminder->due_at, false);
+        return $this->speedUp($now->diffInMinutes($reminder->due_at, false));
+    }
 
+    /**
+     * Minutes between nags when this many minutes are left (negative: overdue).
+     */
+    private function speedUp(float|int $minutesLeft): int
+    {
         return match (true) {
             $minutesLeft > 120 => 60,
             $minutesLeft > 30 => 30,
@@ -197,7 +208,7 @@ class ReminderEngine
                 $recipient->forceFill([
                     'pending_since' => $recipient->pending_since ?? $now,
                     'last_notified_at' => $now,
-                    'next_notify_at' => $this->shift($reminder, $user, $now->addMinutes($this->nagInterval($reminder, $now))),
+                    'next_notify_at' => $this->shift($reminder, $user, $now->addMinutes($this->nagInterval($reminder, $now, $user))),
                 ])->save();
 
                 $this->log($reminder, $user, ReminderEvent::NOTIFIED, $now);

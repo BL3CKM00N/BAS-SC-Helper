@@ -54,11 +54,26 @@ final class RecurrenceSchedule
     }
 
     /**
-     * The first notification of the given local day.
+     * The first notification of the given local day: 15 minutes after the work day starts, or, for a reminder
+     * with a due time, the "start reminding" time before it (never earlier than those 15 minutes).
      */
-    public static function startOn(User $user, CarbonImmutable $localDay): CarbonImmutable
+    public static function startOn(Reminder $reminder, User $user, CarbonImmutable $localDay): CarbonImmutable
     {
-        return self::at($localDay, $user->work_start)->addMinutes(self::START_DELAY_MINUTES);
+        $earliest = self::at($localDay, $user->work_start)->addMinutes(self::START_DELAY_MINUTES);
+
+        if (! $reminder->due_time) {
+            return $earliest;
+        }
+
+        return max($earliest, self::at($localDay, $reminder->due_time)->subMinutes($reminder->lead_minutes));
+    }
+
+    /**
+     * The moment of the day a reminder with a due time is due, for the (local) day of the given moment.
+     */
+    public static function dueMoment(Reminder $reminder, User $user, CarbonInterface $at): ?CarbonImmutable
+    {
+        return $reminder->due_time ? self::at(self::local($user, $at)->startOfDay(), $reminder->due_time)->utc() : null;
     }
 
     /**
@@ -82,7 +97,7 @@ final class RecurrenceSchedule
         $local = self::local($user, $now);
 
         if (self::matches($reminder, $user, $local) && $local < self::at($local, $user->work_end)) {
-            return max(self::startOn($user, $local), $local)->utc();
+            return max(self::startOn($reminder, $user, $local), $local)->utc();
         }
 
         return self::nextAfterToday($reminder, $user, $now);
@@ -99,7 +114,7 @@ final class RecurrenceSchedule
             $day = $local->addDays($i);
 
             if (self::matches($reminder, $user, $day)) {
-                return self::startOn($user, $day)->utc();
+                return self::startOn($reminder, $user, $day)->utc();
             }
         }
 
@@ -112,14 +127,14 @@ final class RecurrenceSchedule
      */
     public static function nextNag(Reminder $reminder, User $user, CarbonInterface $at): CarbonImmutable
     {
-        if (self::isActive($reminder, $user, $at)) {
-            return CarbonImmutable::instance($at);
-        }
-
         $local = self::local($user, $at);
 
-        if (self::matches($reminder, $user, $local) && $local < self::at($local, $user->work_start)) {
-            return self::startOn($user, $local)->utc();
+        if (self::matches($reminder, $user, $local) && $local < self::startOn($reminder, $user, $local)) {
+            return self::startOn($reminder, $user, $local)->utc();
+        }
+
+        if (self::isActive($reminder, $user, $at)) {
+            return CarbonImmutable::instance($at);
         }
 
         return self::nextAfterToday($reminder, $user, $at);

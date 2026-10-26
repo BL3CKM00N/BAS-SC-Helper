@@ -5,7 +5,8 @@
 @forelse ($due as $recipient)
     @php
         $reminder = $recipient->reminder;
-        $overdue = $reminder->isDeadline() && $reminder->due_at && $reminder->due_at->isPast();
+        $dueMoment = $reminder->followsDays() ? \App\Services\Reminders\RecurrenceSchedule::dueMoment($reminder, $user, $recipient->pending_since ?? now()) : null;
+        $overdue = ($reminder->isDeadline() && $reminder->due_at && $reminder->due_at->isPast()) || ($dueMoment && $dueMoment->isPast());
         $since = $user->local($recipient->pending_since ?? $recipient->next_notify_at);
     @endphp
 
@@ -18,7 +19,7 @@
                     @if ($reminder->isDeadline())
                         <span class="{{ $overdue ? 'text-red-300' : '' }}">{{ $overdue ? 'Overdue since' : 'Due' }} {{ $user->local($reminder->due_at)->format('D j M H:i') }}</span>
                     @elseif ($reminder->followsDays())
-                        {{ $reminder->scheduleLabel() }}
+                        <span class="{{ $overdue ? 'text-red-300' : '' }}">{{ $reminder->scheduleLabel() }}{{ $overdue ? ' (overdue)' : '' }}</span>
                         @if ($reminder->daily_target) &middot; done {{ $engine->doneToday($reminder, $user) }} of {{ $reminder->daily_target }} today @endif
                     @else
                         Repeats every {{ $reminder->interval_minutes }} min

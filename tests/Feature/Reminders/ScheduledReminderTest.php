@@ -314,4 +314,95 @@ class ScheduledReminderTest extends TestCase
 
         $this->assertEquals($this->at('2026-10-26 11:30'), $this->recipient($reminder, $user)->next_notify_at);
     }
+
+    private function dueAt(User $user, string $time, int $lead = 240): Reminder
+    {
+        return Reminder::factory()->onWeekdays([1, 3])->create(['created_by' => $user->id, 'due_time' => $time, 'lead_minutes' => $lead]);
+    }
+
+    public function test_it_starts_reminding_before_the_due_time(): void
+    {
+        $user = User::factory()->create();
+        $reminder = $this->dueAt($user, '15:00'); // 4 hours before: 11:00
+
+        $this->engine->sync($reminder, $this->at('2026-10-26 07:00'));
+
+        $this->assertEquals($this->at('2026-10-26 11:00'), $this->recipient($reminder, $user)->next_notify_at);
+        $this->assertSame(0, $this->engine->sendDue($this->at('2026-10-26 10:59')));
+        $this->assertSame(1, $this->engine->sendDue($this->at('2026-10-26 11:00')));
+    }
+
+    public function test_the_start_is_never_before_the_work_day_starts(): void
+    {
+        $user = User::factory()->create();
+        $reminder = $this->dueAt($user, '09:00'); // 4 hours before would be 05:00
+
+        $this->engine->sync($reminder, $this->at('2026-10-26 07:00'));
+
+        $this->assertEquals($this->at('2026-10-26 08:15'), $this->recipient($reminder, $user)->next_notify_at);
+    }
+
+    public function test_it_speeds_up_towards_the_due_time_and_keeps_nagging_when_overdue(): void
+    {
+        $user = User::factory()->create();
+        $reminder = $this->dueAt($user, '15:00', 480); // starts 08:15
+        $this->engine->sync($reminder, $this->at('2026-10-26 07:00'));
+
+        $this->assertSame(60, $this->engine->nagInterval($reminder, $this->at('2026-10-26 10:00'), $user)); // 5h left
+        $this->assertSame(30, $this->engine->nagInterval($reminder, $this->at('2026-10-26 13:30'), $user)); // 90 min left
+        $this->assertSame(10, $this->engine->nagInterval($reminder, $this->at('2026-10-26 14:45'), $user)); // 15 min left
+        $this->assertSame(5, $this->engine->nagInterval($reminder, $this->at('2026-10-26 15:10'), $user)); // overdue
+
+        $this->recipient($reminder, $user)->update(['next_notify_at' => $this->at('2026-10-26 15:10')]);
+        $this->engine->sendDue($this->at('2026-10-26 15:10'));
+        $this->assertEquals($this->at('2026-10-26 15:15'), $this->recipient($reminder, $user)->next_notify_at);
+    }
+
+    public function test_overdue_nagging_stops_when_the_work_day_ends(): void
+    {
+        $user = User::factory()->create();
+        $reminder = $this->dueAt($user, '15:00');
+        $this->engine->sync($reminder, $this->at('2026-10-26 07:00'));
+        $this->recipient($reminder, $user)->update(['next_notify_at' => $this->at('2026-10-26 17:28')]);
+
+        $this->engine->sendDue($this->at('2026-10-26 17:28'));
+
+        $this->assertEquals($this->at('2026-10-28 11:00'), $this->recipient($reminder, $user)->next_notify_at, 'the next chosen day, 4 hours before 15:00');
+        $this->assertNotNull($this->recipient($reminder, $user)->pending_since);
+    }
+
+    public function test_done_returns_on_the_next_chosen_day_before_the_due_time(): void
+    {
+        $user = User::factory()->create();
+        $reminder = $this->dueAt($user, '15:00');
+        $this->engine->sync($reminder, $this->at('2026-10-26 07:00'));
+        $this->engine->sendDue($this->at('2026-10-26 11:00'));
+
+        $this->engine->done($this->recipient($reminder, $user), $this->at('2026-10-26 12:00'));
+
+        $this->assertEquals($this->at('2026-10-28 11:00'), $this->recipient($reminder, $user)->next_notify_at);
+        $this->assertSame('Every Mon, Wed, due 15:00', $reminder->scheduleLabel());
+    }
+
+    public function test_created_in_the_app_with_a_due_time(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->post(route('reminders.store'), [
+            'title' => 'Weekly report', 'type' => 'repeating', 'recurrence' => 'weekly', 'frequency' => 'daily', 'weekdays' => [5],
+            'due_time' => '15:00', 'recurring_lead_minutes' => 120,
+        ])->assertRedirect(route('reminders.index'));
+
+        $reminder = Reminder::query()->firstOrFail();
+        $this->assertSame('15:00', $reminder->due_time);
+        $this->assertSame(120, $reminder->lead_minutes);
+
+        $this->actingAs($user)->post(route('reminders.store'), [
+            'title' => 'Often', 'type' => 'repeating', 'frequency' => 'interval', 'interval_minutes' => 60, 'due_time' => '15:00',
+        ])->assertRedirect();
+        $this->assertNull(Reminder::query()->where('title', 'Often')->firstOrFail()->due_time, 'a due time only goes with once a day');
+
+        $this->actingAs($user)->post(route('reminders.store'), ['title' => 'Bad', 'type' => 'repeating', 'frequency' => 'daily', 'due_time' => 'soon'])
+            ->assertSessionHasErrors('due_time');
+    }
 }

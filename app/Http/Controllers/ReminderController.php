@@ -104,7 +104,7 @@ class ReminderController extends Controller
         unset($data['team_id']);
 
         $reminder->fill($data);
-        $reschedule = $reminder->isDirty(['type', 'due_at', 'lead_minutes', 'interval_minutes', 'assignee_id', 'recurrence', 'weekdays', 'month_days']);
+        $reschedule = $reminder->isDirty(['type', 'due_at', 'lead_minutes', 'interval_minutes', 'assignee_id', 'recurrence', 'weekdays', 'month_days', 'due_time']);
         $reminder->save();
 
         $reschedule ? $this->engine->reschedule($reminder) : $this->engine->sync($reminder);
@@ -233,6 +233,8 @@ class ReminderController extends Controller
             'completion_mode' => ['nullable', Rule::in([Reminder::ANYONE, Reminder::EACH])],
             'due_at' => ['required_if:type,'.Reminder::DEADLINE, 'nullable', 'date'],
             'lead_minutes' => ['nullable', 'integer', Rule::in(array_keys(self::LEAD_OPTIONS))],
+            'due_time' => ['nullable', 'date_format:H:i'],
+            'recurring_lead_minutes' => ['nullable', 'integer', Rule::in(array_keys(self::LEAD_OPTIONS))],
             'nag_minutes' => ['nullable', 'integer', 'min:1', 'max:1440'],
             'interval_minutes' => [Rule::requiredIf(fn () => $request->input('type') === Reminder::REPEATING && $request->input('frequency') !== 'daily'), 'nullable', 'integer', 'min:5', 'max:1440'],
             'daily_target' => ['nullable', 'integer', 'min:1', 'max:50'],
@@ -258,7 +260,8 @@ class ReminderController extends Controller
             'assignee_id' => ($data['team_id'] ?? null) ? ($data['assignee_id'] ?? null) : null,
             'completion_mode' => $data['completion_mode'] ?? Reminder::ANYONE,
             'due_at' => $deadline ? CarbonImmutable::parse($data['due_at'], $user->timezone)->utc() : null,
-            'lead_minutes' => $data['lead_minutes'] ?? 240,
+            'lead_minutes' => ($repeating ? ($data['recurring_lead_minutes'] ?? null) : ($data['lead_minutes'] ?? null)) ?? 240,
+            'due_time' => $repeating && ! $interval ? ($data['due_time'] ?? null) : null,
             'nag_minutes' => $data['nag_minutes'] ?? null,
             'interval_minutes' => $interval ? (int) $data['interval_minutes'] : null,
             'daily_target' => $interval ? ($data['daily_target'] ?? null) : null,
