@@ -3,6 +3,12 @@
 @php
     $editing = $reminder->exists;
     $type = old('type', $reminder->type ?? 'deadline');
+    $recurrence = old('recurrence', $reminder->recurrence ?? 'weekly');
+    $pickedWeekdays = array_map('intval', (array) old('weekdays', $reminder->weekdayList()));
+    $pickedMonthDays = array_map('intval', (array) old('month_days', $reminder->monthDayList()));
+    $dayNames = [1 => 'Mon', 2 => 'Tue', 3 => 'Wed', 4 => 'Thu', 5 => 'Fri', 6 => 'Sat', 7 => 'Sun'];
+    $chip = 'flex cursor-pointer items-center justify-center rounded-lg border border-white/15 bg-[#1d1d1a] px-3 py-2 text-sm transition has-[:checked]:border-[#1da15e] has-[:checked]:bg-[#1da15e]/20';
+    $startsAt = \Carbon\CarbonImmutable::createFromFormat('H:i', $user->work_start ?: '08:00')->addMinutes(\App\Services\Reminders\RecurrenceSchedule::START_DELAY_MINUTES)->format('H:i');
     $dueValue = old('due_at', $reminder->due_at ? $user->local($reminder->due_at)->format('Y-m-d\TH:i') : '');
     $teamId = old('team_id', $reminder->team_id);
     $inputClass = 'w-full rounded-lg border border-white/15 bg-[#1d1d1a] px-3 py-2.5 text-sm text-white outline-none focus:border-[#1da15e] focus:ring-1 focus:ring-[#1da15e]';
@@ -31,7 +37,7 @@
 
         <fieldset>
             <legend class="mb-2 text-sm text-[#b8bab8]">Kind of reminder</legend>
-            <div class="grid gap-3 sm:grid-cols-2">
+            <div class="grid gap-3 sm:grid-cols-3">
                 <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-[#1d1d1a] p-4 has-[:checked]:border-[#1da15e]">
                     <input type="radio" name="type" value="deadline" @checked($type === 'deadline') class="mt-1 accent-[#1da15e]" data-type-radio>
                     <span><span class="block text-sm font-medium">Deadline</span><span class="text-xs text-[#b8bab8]">Reminds you more often as the deadline gets closer, until it is done.</span></span>
@@ -40,8 +46,47 @@
                     <input type="radio" name="type" value="repeating" @checked($type === 'repeating') class="mt-1 accent-[#1da15e]" data-type-radio>
                     <span><span class="block text-sm font-medium">Repeats during the day</span><span class="text-xs text-[#b8bab8]">Comes back every X minutes after you did it, for things you do several times a day.</span></span>
                 </label>
+                <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-[#1d1d1a] p-4 has-[:checked]:border-[#1da15e]">
+                    <input type="radio" name="type" value="scheduled" @checked($type === 'scheduled') class="mt-1 accent-[#1da15e]" data-type-radio>
+                    <span><span class="block text-sm font-medium">On chosen days</span><span class="text-xs text-[#b8bab8]">Comes back on the weekdays or days of the month you pick, until it is done.</span></span>
+                </label>
             </div>
         </fieldset>
+
+        <div class="space-y-4" data-type-panel="scheduled">
+            <div class="flex gap-3">
+                <label class="{{ $chip }} flex-1"><input type="radio" name="recurrence" value="weekly" @checked($recurrence !== 'monthly') class="sr-only" data-recurrence>Every week</label>
+                <label class="{{ $chip }} flex-1"><input type="radio" name="recurrence" value="monthly" @checked($recurrence === 'monthly') class="sr-only" data-recurrence>Every month</label>
+            </div>
+
+            <div data-recurrence-panel="weekly">
+                <p class="mb-2 text-sm text-[#b8bab8]">On these days</p>
+                <div class="grid grid-cols-7 gap-2">
+                    @foreach ($dayNames as $number => $name)
+                        <label class="{{ $chip }}"><input type="checkbox" name="weekdays[]" value="{{ $number }}" @checked(in_array($number, $pickedWeekdays, true)) class="sr-only" data-weekday>{{ $name }}</label>
+                    @endforeach
+                </div>
+                <div class="mt-2 flex gap-3 text-xs text-[#b8bab8]">
+                    <button type="button" class="underline" data-weekday-preset="1,2,3,4,5">Mon to Fri</button>
+                    <button type="button" class="underline" data-weekday-preset="1,2,3,4,5,6,7">Every day</button>
+                </div>
+            </div>
+
+            <div data-recurrence-panel="monthly">
+                <p class="mb-2 text-sm text-[#b8bab8]">On these days of the month</p>
+                <div class="grid grid-cols-7 gap-2">
+                    @foreach (range(1, 31) as $day)
+                        <label class="{{ $chip }} px-0"><input type="checkbox" name="month_days[]" value="{{ $day }}" @checked(in_array($day, $pickedMonthDays, true)) class="sr-only" data-monthday>{{ $day }}</label>
+                    @endforeach
+                    <label class="{{ $chip }} col-span-3 px-0"><input type="checkbox" name="month_days[]" value="-1" @checked(in_array(-1, $pickedMonthDays, true)) class="sr-only" data-monthday>Last day</label>
+                </div>
+                <p class="mt-2 text-xs text-[#b8bab8]">A day that does not exist in a month (the 31st in April) falls on the last day of that month.</p>
+            </div>
+
+            <p class="hidden rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-200" data-offday-notice></p>
+            <p class="text-xs text-[#b8bab8]" data-schedule-preview></p>
+            <p class="text-xs text-[#b8bab8]">The first reminder comes {{ \App\Services\Reminders\RecurrenceSchedule::START_DELAY_MINUTES }} minutes after your work day starts ({{ $startsAt }}), then it nags until you mark it done. A day you choose always counts, also when it is not one of your work days.</p>
+        </div>
 
         <div class="space-y-4" data-type-panel="deadline">
             <div class="grid gap-4 sm:grid-cols-2">
@@ -80,7 +125,7 @@
         <div>
             <label for="nag_minutes" class="mb-1 block text-sm text-[#b8bab8]">If I ignore it, remind me again every (minutes)</label>
             <input id="nag_minutes" name="nag_minutes" type="number" min="1" max="1440" placeholder="Automatic" value="{{ old('nag_minutes', $reminder->nag_minutes) }}" class="{{ $inputClass }}">
-            <p class="mt-1 text-xs text-[#b8bab8]">Leave empty for automatic: a deadline gets faster reminders as it gets closer (every hour, then 30, 10 and 5 minutes), a repeating reminder nags every 10 minutes.</p>
+            <p class="mt-1 text-xs text-[#b8bab8]">Leave empty for automatic: a deadline gets faster reminders as it gets closer (every hour, then 30, 10 and 5 minutes), a repeating reminder or one on chosen days nags every 10 minutes.</p>
         </div>
 
         @if ($teams->isNotEmpty())
@@ -156,8 +201,53 @@
                 if (everyone) { everyone.hidden = !teamId || (assignee && assignee.value !== ''); }
             }
 
-            form.addEventListener('change', update);
+            var workDays = {{ Js::from(array_map('intval', array_filter(explode(',', (string) $user->work_days)))) }};
+            var dayNames = {1: 'Monday', 2: 'Tuesday', 3: 'Wednesday', 4: 'Thursday', 5: 'Friday', 6: 'Saturday', 7: 'Sunday'};
+
+            function ticked(selector) {
+                return Array.prototype.map.call(form.querySelectorAll(selector + ':checked'), function (box) { return parseInt(box.value, 10); });
+            }
+
+            function matches(date, weekly, days) {
+                if (weekly) { return days.indexOf(date.getDay() === 0 ? 7 : date.getDay()) !== -1; }
+                var last = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+                return days.some(function (day) { return date.getDate() === (day === -1 ? last : Math.min(day, last)); });
+            }
+
+            function scheduleHints() {
+                var weekly = (form.querySelector('[data-recurrence]:checked') || {}).value !== 'monthly';
+                var days = weekly ? ticked('[data-weekday]') : ticked('[data-monthday]');
+
+                form.querySelectorAll('[data-recurrence-panel]').forEach(function (panel) {
+                    panel.hidden = (panel.getAttribute('data-recurrence-panel') === 'weekly') !== weekly;
+                });
+
+                var notice = form.querySelector('[data-offday-notice]');
+                var off = weekly ? days.filter(function (day) { return workDays.indexOf(day) === -1; }) : [];
+                notice.textContent = off.length ? off.map(function (day) { return dayNames[day]; }).join(' and ') + (off.length > 1 ? ' are not work days' : ' is not a work day') + ' for you. The reminder will still come on ' + (off.length > 1 ? 'those days' : 'that day') + '.' : '';
+                notice.classList.toggle('hidden', !off.length);
+
+                var preview = form.querySelector('[data-schedule-preview]');
+                var next = [];
+                for (var i = 0; i < 400 && next.length < 3 && days.length; i++) {
+                    var date = new Date();
+                    date.setDate(date.getDate() + i);
+                    if (matches(date, weekly, days)) { next.push(date.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })); }
+                }
+                preview.textContent = next.length ? 'Next: ' + next.join(', ') : '';
+            }
+
+            form.querySelectorAll('[data-weekday-preset]').forEach(function (button) {
+                button.addEventListener('click', function () {
+                    var wanted = button.getAttribute('data-weekday-preset').split(',').map(Number);
+                    form.querySelectorAll('[data-weekday]').forEach(function (box) { box.checked = wanted.indexOf(parseInt(box.value, 10)) !== -1; });
+                    scheduleHints();
+                });
+            });
+
+            form.addEventListener('change', function () { update(); scheduleHints(); });
             update();
+            scheduleHints();
         })();
     </script>
 @endsection

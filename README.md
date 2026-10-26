@@ -76,10 +76,11 @@ vendor/bin/pint     # fix code style
 
 ## Reminders
 
-Two kinds, both created on the **Reminders** page:
+Three kinds, all created on the **Reminders** page:
 
 - **Deadline:** a title and a due date and time. It starts reminding a while before (you choose 30 minutes to 1 day) and keeps going until it is marked done. The reminders speed up by themselves: every 60 minutes while more than 2 hours are left, every 30 minutes in the last 2 hours, every 10 minutes in the last 30 minutes and every 5 minutes once overdue. You can set a fixed interval instead.
 - **Repeats during the day:** for things you do several times a day. The timer is rolling: the next reminder comes X minutes after you last marked it done, not at fixed clock times. An optional daily target ("4 times a day") pauses it until the next working day once reached. If you ignore it, it nags every 10 minutes (or your own interval).
+- **On chosen days:** comes back on the weekdays you pick (Mon to Sun) or on days of the month (1 to 31, or the last day; a day that a month does not have, like the 31st in April, falls on its last day). The first reminder of a chosen day comes **15 minutes after your work day starts** (08:15 with the default hours), then it nags every 10 minutes (or your own interval) until you mark it done. **A chosen day always counts, also when it is not one of your work days** (the form tells you when that is the case): on such a day your work start and end are the window it may notify in. Done, Skip today and Snooze work as usual; Done and Skip bring it back on the next chosen day. If a day passes without Done it is logged as missed and the next chosen day replaces it. For team reminders, each person's own time zone and work hours decide the times.
 
 **What you can do with a reminder:** **Done**, **Snooze** (10 minutes, 30 minutes or 1 hour) or **Skip today** (hidden until the next working day; it asks for confirmation first, Done and Snooze do not). The **Due now** list on the dashboard and on the reminders page refreshes every 30 seconds and after each action, shows the number in the tab title and vibrates and beeps when something new shows up.
 
@@ -132,7 +133,7 @@ Nothing here is promised yet. The list is filled in as the service coordinator w
 - [x] BAS World branding, favicon and PWA icons
 - [x] Offline, server-unreachable and error screens
 - [x] Teams with a single manager each, open teams, and requests that admins approve
-- [x] Reminders: deadlines, repeating reminders, work hours, team reminders and push notifications
+- [x] Reminders: deadlines, repeating reminders, reminders on chosen weekdays or days of the month, work hours, team reminders and push notifications
 - [ ] Map the rest of the service coordinator workflow and decide the next feature
 - [x] Login, roles and a Filament admin panel for admins
 - [x] Admin panel: dashboard and system health, user management, audit log, maintenance mode, announcements, bulk tools and app defaults

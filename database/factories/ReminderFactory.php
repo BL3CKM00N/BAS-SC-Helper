@@ -34,4 +34,30 @@ class ReminderFactory extends Factory
             'daily_target' => $dailyTarget,
         ]);
     }
+
+    /**
+     * @param  list<int>  $weekdays  ISO weekdays, 1 is Monday
+     */
+    public function onWeekdays(array $weekdays): static
+    {
+        return $this->state(fn () => [
+            'type' => Reminder::SCHEDULED,
+            'due_at' => null,
+            'recurrence' => Reminder::WEEKLY,
+            'weekdays' => implode(',', $weekdays),
+        ]);
+    }
+
+    /**
+     * @param  list<int>  $days  days of the month, -1 is the last day
+     */
+    public function onMonthDays(array $days): static
+    {
+        return $this->state(fn () => [
+            'type' => Reminder::SCHEDULED,
+            'due_at' => null,
+            'recurrence' => Reminder::MONTHLY,
+            'month_days' => implode(',', $days),
+        ]);
+    }
 }

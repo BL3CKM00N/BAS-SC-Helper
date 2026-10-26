@@ -18,6 +18,8 @@
                 &middot;
                 @if ($reminder->isDeadline())
                     {{ $reminder->completed_at ? 'Done '.$user->local($reminder->completed_at)->format('D j M H:i') : 'Due '.$user->local($reminder->due_at)->format('D j M H:i') }}
+                @elseif ($reminder->isScheduled())
+                    {{ $reminder->scheduleLabel() }}
                 @else
                     Every {{ $reminder->interval_minutes }} min
                     @if ($reminder->daily_target) &middot; {{ $engine->doneToday($reminder, $user) }} of {{ $reminder->daily_target }} today @endif
@@ -32,7 +34,7 @@
         </div>
 
         <div class="flex items-center gap-2">
-            @if ($mine && ! $reminder->completed_at && $reminder->isRepeating())
+            @if ($mine && ! $reminder->completed_at && ($reminder->isRepeating() || ($reminder->isScheduled() && $mine->pending_since)))
                 <form method="POST" action="{{ route('reminders.done', $reminder) }}">
                     @csrf
                     <button type="submit" class="rounded-lg border border-white/15 px-3 py-1.5 text-xs transition hover:bg-white/5">Done now</button>

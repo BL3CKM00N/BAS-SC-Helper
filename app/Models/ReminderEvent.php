@@ -19,6 +19,9 @@ class ReminderEvent extends Model
 
     public const SKIPPED = 'skipped';
 
+    /** A scheduled reminder that was not done before its next day came. */
+    public const MISSED = 'missed';
+
     /**
      * @return array<string, string>
      */

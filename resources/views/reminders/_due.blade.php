@@ -17,6 +17,8 @@
                     @if ($reminder->team) {{ $reminder->team->name }} &middot; @endif
                     @if ($reminder->isDeadline())
                         <span class="{{ $overdue ? 'text-red-300' : '' }}">{{ $overdue ? 'Overdue since' : 'Due' }} {{ $user->local($reminder->due_at)->format('D j M H:i') }}</span>
+                    @elseif ($reminder->isScheduled())
+                        {{ $reminder->scheduleLabel() }}
                     @else
                         Repeats every {{ $reminder->interval_minutes }} min
                         @if ($reminder->daily_target)

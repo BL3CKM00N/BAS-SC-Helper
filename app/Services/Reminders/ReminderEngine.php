@@ -89,6 +89,10 @@ class ReminderEngine
 
     public function firstNotification(Reminder $reminder, User $user, CarbonImmutable $now): CarbonImmutable
     {
+        if ($reminder->isScheduled()) {
+            return RecurrenceSchedule::current($reminder, $user, $now);
+        }
+
         $at = $now;
 
         if ($reminder->isDeadline() && $reminder->due_at) {
@@ -127,6 +131,10 @@ class ReminderEngine
      */
     public function shift(Reminder $reminder, User $user, CarbonImmutable $at): CarbonImmutable
     {
+        if ($reminder->isScheduled()) {
+            return RecurrenceSchedule::nextNag($reminder, $user, $at);
+        }
+
         if ($this->ignoresWorkHours($reminder, $at)) {
             return $at;
         }
@@ -166,10 +174,22 @@ class ReminderEngine
                 $reminder = $recipient->reminder;
                 $user = $recipient->user;
 
-                $allowed = WorkHours::isWorkingTime($user, $now) || $this->ignoresWorkHours($reminder, $now);
+                if ($reminder->isScheduled()) {
+                    // A new chosen day replaces a notification that was never answered.
+                    if ($recipient->pending_since && ! $this->sameLocalDay($user, $recipient->pending_since, $now)) {
+                        $this->log($reminder, $user, ReminderEvent::MISSED, $now, ['since' => $recipient->pending_since->toIso8601String()]);
+                        $recipient->pending_since = null;
+                    }
+
+                    $allowed = RecurrenceSchedule::isActive($reminder, $user, $now);
+                    $postpone = fn () => RecurrenceSchedule::nextNag($reminder, $user, $now);
+                } else {
+                    $allowed = WorkHours::isWorkingTime($user, $now) || $this->ignoresWorkHours($reminder, $now);
+                    $postpone = fn () => WorkHours::nextWorkingTime($user, $now);
+                }
 
                 if (! $allowed) {
-                    $recipient->update(['next_notify_at' => WorkHours::nextWorkingTime($user, $now)]);
+                    $recipient->forceFill(['next_notify_at' => $postpone()])->save();
 
                     return;
                 }
@@ -241,7 +261,9 @@ class ReminderEngine
     public function skipToday(ReminderRecipient $recipient, ?CarbonInterface $now = null): void
     {
         $now = $this->now($now);
-        $until = WorkHours::startOfNextWorkday($recipient->user, $now);
+        $until = $recipient->reminder->isScheduled()
+            ? RecurrenceSchedule::nextAfterToday($recipient->reminder, $recipient->user, $now)
+            : WorkHours::startOfNextWorkday($recipient->user, $now);
 
         $recipient->forceFill([
             'skipped_until' => $until,
@@ -256,6 +278,17 @@ class ReminderEngine
     private function scheduleNextRepetition(Reminder $reminder, ReminderRecipient $recipient, CarbonImmutable $now): void
     {
         $user = $recipient->user;
+
+        if ($reminder->isScheduled()) {
+            $recipient->forceFill([
+                'pending_since' => null,
+                'snoozed_until' => null,
+                'skipped_until' => null,
+                'next_notify_at' => RecurrenceSchedule::nextAfterToday($reminder, $user, $now),
+            ])->save();
+
+            return;
+        }
 
         $targetReached = $reminder->daily_target
             && $this->doneToday($reminder, $user, $now) >= $reminder->daily_target;
@@ -306,8 +339,9 @@ class ReminderEngine
             ->with('reminder.team')
             ->get()
             ->filter(fn (ReminderRecipient $recipient) => $recipient->pending_since
-                || WorkHours::isWorkingTime($user, $now)
-                || $this->ignoresWorkHours($recipient->reminder, $now))
+                || ($recipient->reminder->isScheduled()
+                    ? RecurrenceSchedule::isActive($recipient->reminder, $user, $now)
+                    : WorkHours::isWorkingTime($user, $now) || $this->ignoresWorkHours($recipient->reminder, $now)))
             ->sortBy(fn (ReminderRecipient $recipient) => $recipient->pending_since ?? $recipient->next_notify_at)
             ->values();
     }
@@ -326,6 +360,11 @@ class ReminderEngine
             'meta' => $meta,
             'created_at' => $at,
         ]);
+    }
+
+    private function sameLocalDay(User $user, CarbonInterface $a, CarbonInterface $b): bool
+    {
+        return $user->local($a)?->toDateString() === $user->local($b)?->toDateString();
     }
 
     private function now(?CarbonInterface $now): CarbonImmutable

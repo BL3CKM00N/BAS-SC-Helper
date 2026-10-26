@@ -59,6 +59,6 @@ class ReminderDue extends Notification
             return $team.($reminder->due_at->isPast() ? 'Overdue since ' : 'Due ').$due;
         }
 
-        return $team.'Time for the next round';
+        return $team.($reminder->isScheduled() ? $reminder->scheduleLabel() : 'Time for the next round');
     }
 }
