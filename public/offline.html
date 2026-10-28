@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#1d1d1a">
-    <title>Offline - BAS SC Helper</title>
+    <title>BAS SC Helper</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <style>
         * { box-sizing: border-box; }
@@ -16,12 +16,13 @@
         main { max-width: 24rem; display: flex; flex-direction: column; align-items: center; }
         .brand { display: flex; align-items: center; gap: .75rem; margin-bottom: 2.5rem; }
         .brand img { height: 2rem; width: auto; }
-        .dev-tag, .dev-footer {
+        .dev-footer {
             display: none; color: #ef4444; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
             font-family: system-ui, sans-serif;
         }
-        html[data-env="local"] .dev-tag { display: block; font-size: .95rem; letter-spacing: .15em; }
         html[data-env="local"] .dev-footer { display: block; position: fixed; left: 0; right: 0; bottom: 0; padding: .5rem 0; font-size: .75rem; }
+        body.launching .spinner, body.launching h1, body.launching p { visibility: hidden; }
+        body.launching .brand { margin-bottom: 2.5rem; }
         .spinner {
             height: 2rem; width: 2rem; border: 3px solid rgba(184, 186, 184, .25); border-top-color: #1da15e;
             border-radius: 9999px; animation: spin .9s linear infinite;
@@ -37,14 +38,13 @@
     </style>
 </head>
 <body>
-    <main role="alert" aria-live="assertive">
+    <main>
         <div class="brand">
             <img src="/logo.svg" alt="BAS World">
-            <span class="dev-tag">DEV</span>
         </div>
         <div class="spinner" aria-hidden="true"></div>
-        <h1 id="title">No internet connection</h1>
-        <p id="text">Connect to Wi-Fi or mobile data to use BAS SC Helper. This page reloads by itself when you're back online.</p>
+        <h1 id="title">Opening BAS SC Helper</h1>
+        <p id="text"></p>
     </main>
     <div class="dev-footer">Development environment</div>
     <script>
@@ -58,37 +58,68 @@
 
             if (document.documentElement.getAttribute('data-env') === 'local') {
                 document.title += ' [DEV]';
+                document.querySelector('.brand img').setAttribute('src', '/logo-dev.svg');
             }
 
             var title = document.getElementById('title');
             var text = document.getElementById('text');
+            var main = document.querySelector('main');
             var checking = false;
+            var timer = null;
+
+            // The app's start URL is answered with this page first. While the phone wakes its network up we only
+            // show the logo and keep probing; a message appears when that still fails after the grace period.
+            var GRACE_MS = 2500;
+            var launching = location.pathname === '/' && location.search.indexOf('go=') === -1;
 
             function render() {
-                if (navigator.onLine) {
-                    title.textContent = "Can't reach the server";
-                    text.textContent = "The server isn't responding right now. We keep checking and will reload this page automatically.";
-                } else {
+                document.body.classList.toggle('launching', launching);
+                main.setAttribute('role', launching ? 'status' : 'alert');
+
+                if (launching) return;
+
+                if (!navigator.onLine) {
                     title.textContent = 'No internet connection';
                     text.textContent = "Connect to Wi-Fi or mobile data to use BAS SC Helper. This page reloads by itself when you're back online.";
+                } else {
+                    title.textContent = "Can't reach the server";
+                    text.textContent = "The server isn't responding right now. We keep checking and will reload this page automatically.";
                 }
+            }
+
+            function proceed() {
+                if (location.pathname === '/' && location.search.indexOf('go=') === -1) {
+                    location.replace('/?go=1');
+                } else {
+                    location.reload();
+                }
+            }
+
+            function schedule() {
+                clearTimeout(timer);
+                timer = setTimeout(check, launching ? 400 : 2000);
             }
 
             function check() {
                 if (checking) return;
                 checking = true;
                 var controller = new AbortController();
-                var timer = setTimeout(function () { controller.abort(); }, 4000);
+                var abort = setTimeout(function () { controller.abort(); }, 3000);
 
                 fetch('/up?_=' + Date.now(), { cache: 'no-store', signal: controller.signal })
-                    .then(function (response) { if (response.ok) location.reload(); })
+                    .then(function (response) { if (response.ok) proceed(); })
                     .catch(function () {})
-                    .then(function () { clearTimeout(timer); checking = false; render(); });
+                    .then(function () { clearTimeout(abort); checking = false; render(); schedule(); });
             }
 
             render();
-            setInterval(check, 3000);
-            window.addEventListener('online', function () { render(); setTimeout(check, 300); });
+            check();
+
+            if (launching) {
+                setTimeout(function () { launching = false; render(); }, GRACE_MS);
+            }
+
+            window.addEventListener('online', function () { render(); clearTimeout(timer); setTimeout(check, 300); });
             window.addEventListener('offline', render);
         })();
     </script>

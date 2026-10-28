@@ -25,4 +25,21 @@ class ServiceWorkerTest extends TestCase
         $this->app['env'] = 'production';
         $this->assertStringContainsString('const DEV = false;', $this->get('/sw.js')->getContent());
     }
+
+    public function test_navigations_retry_once_and_do_not_wait_long_for_the_network(): void
+    {
+        $body = $this->get('/sw.js')->getContent();
+
+        $this->assertStringContainsString('const NAVIGATION_TIMEOUT = 4000;', $body);
+        $this->assertStringNotContainsString('navigator.onLine', $body);
+        $this->assertStringContainsString('fetchWithRetry', $body);
+    }
+
+    public function test_the_start_url_is_answered_with_the_launch_screen(): void
+    {
+        $body = $this->get('/sw.js')->getContent();
+
+        $this->assertStringContainsString("pathname === '/' && !searchParams.has('go')", $body);
+        $this->assertStringContainsString("location.replace('/?go=1')", file_get_contents(public_path('offline.html')));
+    }
 }

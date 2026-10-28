@@ -1,4 +1,4 @@
-// Service worker: shows the offline screen when a page navigation cannot reach the server.
+// Service worker: shows a launch screen when the app opens and the offline screen when a page cannot be loaded.
 // __VERSION__ is replaced by the server with a hash of the precached files (see routes/web.php),
 // so a changed file gives a new worker and a new cache. The version in the URLs also keeps
 // Cloudflare from handing out an outdated copy.
@@ -14,7 +14,9 @@ const PRECACHE = [
     ...(DEV ? [`/logo-dev.svg?v=${VERSION}`] : []),
 ];
 const PRECACHE_PATHS = PRECACHE.map((url) => new URL(url, self.location.origin).pathname);
-const NAVIGATION_TIMEOUT = 10000;
+// A launch that gets no answer shows the offline screen after this long. The offline screen then keeps
+// checking and reloads by itself, so a slow network recovers without a black screen in between.
+const NAVIGATION_TIMEOUT = 4000;
 
 self.addEventListener('install', (event) => {
     event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(PRECACHE)).then(() => self.skipWaiting()));
@@ -43,9 +45,35 @@ const isGatewayError = (status) => [502, 503, 504].includes(status) || (status >
 
 const timeout = (ms) => new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms));
 
-async function handleNavigation(request) {
+// Right after a cold start the radio of a phone may still be waking up and the first request fails at once.
+// One quick retry hides that; page loads (GET) are safe to repeat.
+async function fetchWithRetry(request) {
+    if (request.method !== 'GET') return fetch(request);
+
+    const retry = request.clone();
+
     try {
-        const response = await Promise.race([fetch(request), timeout(NAVIGATION_TIMEOUT)]);
+        return await fetch(request);
+    } catch (error) {
+        await new Promise((resolve) => setTimeout(resolve, 400));
+
+        return fetch(retry);
+    }
+}
+
+async function handleNavigation(request) {
+    // Opening the app (its start URL) always answers at once with the launch screen, which checks the
+    // connection itself and continues into the app. That way there is never a blank screen on launch.
+    const { pathname, searchParams } = new URL(request.url);
+
+    if (pathname === '/' && !searchParams.has('go')) {
+        const page = await offlinePage();
+
+        if (page) return page;
+    }
+
+    try {
+        const response = await Promise.race([fetchWithRetry(request), timeout(NAVIGATION_TIMEOUT)]);
 
         if (isGatewayError(response.status)) {
             const body = await response.clone().text();
