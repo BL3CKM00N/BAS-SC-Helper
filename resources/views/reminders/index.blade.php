@@ -48,6 +48,9 @@
     <section class="mt-10" aria-labelledby="folders-heading">
         <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
             <h2 id="folders-heading" class="text-sm font-medium text-[#b8bab8]">Folders</h2>
+            @if ($folders->count() > 1)
+                @include('reminders._sort', ['field' => 'folders', 'options' => \App\Services\Reminders\ReminderSorting::FOLDERS])
+            @endif
         </div>
 
         @if ($folders->isEmpty())
@@ -62,7 +65,10 @@
     </section>
 
     <section class="mt-10" aria-labelledby="upcoming-heading" data-drop-folder="">
-        <h2 id="upcoming-heading" class="mb-3 text-sm font-medium text-[#b8bab8]">Upcoming</h2>
+        <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <h2 id="upcoming-heading" class="text-sm font-medium text-[#b8bab8]">Upcoming</h2>
+            @include('reminders._sort', ['field' => 'sort', 'options' => \App\Services\Reminders\ReminderSorting::REMINDERS])
+        </div>
         <div class="space-y-3">
             @forelse ($upcoming as $reminder)
                 @include('reminders._card', ['reminder' => $reminder, 'engine' => $engine])
@@ -74,7 +80,10 @@
 
     @if ($done->isNotEmpty())
         <section class="mt-10" aria-labelledby="done-heading" data-drop-folder="">
-            <h2 id="done-heading" class="mb-3 text-sm font-medium text-[#b8bab8]">Done</h2>
+            <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+                <h2 id="done-heading" class="text-sm font-medium text-[#b8bab8]">Done</h2>
+                @include('reminders._sort', ['field' => 'done', 'options' => \App\Services\Reminders\ReminderSorting::DONE])
+            </div>
             <div class="space-y-3">
                 @foreach ($done as $reminder)
                     @include('reminders._card', ['reminder' => $reminder, 'engine' => $engine])

@@ -15,7 +15,8 @@ class FolderController extends Controller
     {
         $name = $this->name($request);
 
-        $request->user()->folders()->create(['name' => $name]);
+        $user = $request->user();
+        $user->folders()->create(['name' => $name, 'position' => ((int) $user->folders()->max('position')) + 1]);
 
         return back()->with('status', 'Folder "'.$name.'" was added.');
     }
@@ -36,6 +37,33 @@ class FolderController extends Controller
         $folder->delete();
 
         return back()->with('status', 'Folder "'.$folder->name.'" was deleted. Its reminders are still there.');
+    }
+
+    /**
+     * Move a folder one step up or down in the person's own folder order.
+     */
+    public function reorder(Request $request, Folder $folder): RedirectResponse
+    {
+        $this->own($request, $folder);
+
+        $direction = $request->validate(['direction' => ['required', 'in:up,down']])['direction'];
+
+        // Number the folders in their current own order first, so folders made before this existed have a place.
+        $folders = $request->user()->folders()->get()
+            ->sort(fn (Folder $a, Folder $b) => [$a->position, mb_strtolower($a->name)] <=> [$b->position, mb_strtolower($b->name)])
+            ->values();
+        $index = $folders->search(fn (Folder $f) => $f->is($folder));
+        $swap = $direction === 'up' ? $index - 1 : $index + 1;
+
+        if ($folders->has($swap)) {
+            $moved = $folders->all();
+            [$moved[$index], $moved[$swap]] = [$moved[$swap], $moved[$index]];
+            $folders = collect($moved);
+        }
+
+        $folders->each(fn (Folder $f, int $position) => $f->update(['position' => $position + 1]));
+
+        return back();
     }
 
     /**

@@ -7,12 +7,14 @@ use App\Models\ReminderRecipient;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\Reminders\ReminderEngine;
+use App\Services\Reminders\ReminderSorting;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -35,20 +37,27 @@ class ReminderController extends Controller
         $reminders = $this->visible($user, $scope)->get();
         $due = $this->engine->dueNow($user)->filter(fn (ReminderRecipient $r) => $reminders->contains('id', $r->reminder_id));
 
+        $sorting = new ReminderSorting($request);
+
+        if ($sorting->remember) {
+            Cookie::queue(ReminderSorting::COOKIE, $sorting->remember, 60 * 24 * 365);
+        }
+
         // Reminders the person put in a folder are listed in that folder instead of below.
-        $folders = $user->folders()->with('reminders:id')->orderBy('name')->get();
+        $folders = $user->folders()->with('reminders:id')->get();
         $filed = $folders->flatMap(fn ($folder) => $folder->reminders->pluck('id'))->unique();
-        $order = fn (Reminder $r) => $r->recipients->first()?->next_notify_at ?? $r->due_at ?? now()->addYear();
         $loose = $reminders->reject(fn (Reminder $r) => $filed->contains($r->id));
 
         foreach ($folders as $folder) {
             $inFolder = $reminders->filter(fn (Reminder $r) => $folder->reminders->contains('id', $r->id));
-            $folder->setRelation('items', $inFolder
-                ->reject(fn (Reminder $r) => $due->contains('reminder_id', $r->id))
-                ->sortBy(fn (Reminder $r) => ($r->completed_at ? '1' : '0').$order($r)->format('Y-m-d H:i:s'))
+            $open = $inFolder->reject(fn (Reminder $r) => $due->contains('reminder_id', $r->id));
+            $folder->setRelation('items', $sorting->reminders($open->reject(fn (Reminder $r) => $r->completed_at))
+                ->concat($sorting->reminders($open->filter(fn (Reminder $r) => $r->completed_at)))
                 ->values());
-            $folder->due_count = $inFolder->filter(fn (Reminder $r) => $due->contains('reminder_id', $r->id))->count();
+            $folder->due_count = $inFolder->count() - $open->count();
         }
+
+        $folders = $sorting->folders($folders);
 
         return view('reminders.index', [
             'engine' => $this->engine,
@@ -56,11 +65,9 @@ class ReminderController extends Controller
             'scope' => $scope,
             'due' => $due,
             'folders' => $folders,
-            'upcoming' => $loose
-                ->filter(fn (Reminder $r) => $r->isActive() && ! $due->contains('reminder_id', $r->id))
-                ->sortBy($order)
-                ->values(),
-            'done' => $loose->filter(fn (Reminder $r) => $r->completed_at)->sortByDesc('completed_at')->take(20)->values(),
+            'upcoming' => $sorting->reminders($loose->filter(fn (Reminder $r) => $r->isActive() && ! $due->contains('reminder_id', $r->id))),
+            'done' => $sorting->done($loose->filter(fn (Reminder $r) => $r->completed_at))->take(20)->values(),
+            'sorting' => $sorting,
         ]);
     }
 

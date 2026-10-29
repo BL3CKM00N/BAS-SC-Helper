@@ -16,6 +16,15 @@
         @endforelse
 
         <div class="flex flex-wrap items-center gap-2 pt-1">
+            @if ($sorting->chosen['folders'] === 'manual')
+                @foreach (['up' => 'Move up', 'down' => 'Move down'] as $direction => $label)
+                    <form method="POST" action="{{ route('folders.reorder', $folder) }}">
+                        @csrf
+                        <input type="hidden" name="direction" value="{{ $direction }}">
+                        <button type="submit" class="rounded-lg border border-white/15 px-3 py-1.5 text-xs transition hover:bg-white/5">{{ $label }}</button>
+                    </form>
+                @endforeach
+            @endif
             <form method="POST" action="{{ route('folders.update', $folder) }}" class="flex items-center gap-2">
                 @csrf
                 @method('PATCH')

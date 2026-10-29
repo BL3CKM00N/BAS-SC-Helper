@@ -92,6 +92,7 @@ Route::middleware(['auth', 'password.chosen'])->group(function () {
     Route::post('/folders', [FolderController::class, 'store'])->name('folders.store');
     Route::patch('/folders/{folder}', [FolderController::class, 'update'])->name('folders.update');
     Route::delete('/folders/{folder}', [FolderController::class, 'destroy'])->name('folders.destroy');
+    Route::post('/folders/{folder}/order', [FolderController::class, 'reorder'])->name('folders.reorder');
 
     // Your own account. /settings was the old, single page and now leads here.
     Route::redirect('/settings', '/account');
