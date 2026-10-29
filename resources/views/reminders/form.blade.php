@@ -52,7 +52,7 @@
 
         <div class="space-y-4" data-type-panel="deadline">
             <div class="grid gap-4 sm:grid-cols-2">
-                <div>
+                <div class="min-w-0">
                     <label for="due_at" class="mb-1 block text-sm text-[#b8bab8]">Deadline ({{ $user->timezone }})</label>
                     <input id="due_at" name="due_at" type="datetime-local" value="{{ $dueValue }}" class="{{ $inputClass }}">
                 </div>
@@ -116,7 +116,7 @@
                 </div>
                 <div class="mt-3 grid gap-4 sm:grid-cols-2" data-frequency-panel="daily">
                     <div>
-                        <label for="due_time" class="mb-1 block text-sm text-[#b8bab8]">Due by (optional, {{ $user->timezone }})</label>
+                        <label for="due_time" class="mb-1 block text-sm text-[#b8bab8]">Due by (optional)</label>
                         <input id="due_time" name="due_time" type="time" value="{{ old('due_time', $reminder->due_time) }}" class="{{ $inputClass }}">
                     </div>
                     <div>
@@ -128,7 +128,7 @@
                         </select>
                     </div>
                 </div>
-                <p class="mt-2 text-xs text-[#b8bab8]" data-frequency-panel="daily">Without a due time the first reminder comes {{ \App\Services\Reminders\RecurrenceSchedule::START_DELAY_MINUTES }} minutes after your work day starts ({{ $startsAt }}). With one, it starts that long before the due time, goes faster the closer it gets (every hour, then 30, 10 and 5 minutes) and keeps nagging every 5 minutes after it until your work day ends. Either way it nags until you mark it done. A day you choose always counts, also when it is not one of your work days.</p>
+                <p class="mt-2 text-xs text-[#b8bab8]" data-frequency-panel="daily">Without a due time the first reminder comes {{ \App\Services\Reminders\RecurrenceSchedule::START_DELAY_MINUTES }} minutes after your work day starts ({{ $startsAt }}). With one ({{ $user->timezone }} time), it starts that long before the due time, goes faster the closer it gets (every hour, then 30, 10 and 5 minutes) and keeps nagging every 5 minutes after it until your work day ends. Either way it nags until you mark it done. A day you choose always counts, also when it is not one of your work days.</p>
             </div>
 
             <div class="grid gap-4 sm:grid-cols-2" data-frequency-panel="interval">
