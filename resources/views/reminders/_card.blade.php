@@ -4,7 +4,7 @@
     $next = $mine?->next_notify_at;
 @endphp
 
-<article class="rounded-xl border border-white/10 bg-[#262623] p-4">
+<article class="rounded-xl border border-white/10 bg-[#262623] p-4" data-reminder-card>
     <div class="flex flex-wrap items-start justify-between gap-3">
         <div class="min-w-0">
             <h3 class="font-medium {{ $reminder->completed_at ? 'text-[#b8bab8] line-through' : '' }}">{{ $reminder->title }}</h3>
@@ -34,7 +34,20 @@
             @endif
         </div>
 
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
+            @if (($folders ?? collect())->isNotEmpty())
+                <form method="POST" action="{{ route('reminders.folder', $reminder) }}">
+                    @csrf
+                    <label for="folder-{{ $reminder->id }}" class="sr-only">Folder</label>
+                    <select id="folder-{{ $reminder->id }}" name="folder_id" data-auto-submit
+                        class="rounded-lg border border-white/15 bg-[#1d1d1a] px-2 py-1.5 text-xs text-[#b8bab8] outline-none focus:border-[#1da15e]">
+                        <option value="">No folder</option>
+                        @foreach ($folders as $option)
+                            <option value="{{ $option->id }}" @selected(($currentFolder ?? null) === $option->id)>{{ $option->name }}</option>
+                        @endforeach
+                    </select>
+                </form>
+            @endif
             @if ($mine && ! $reminder->completed_at && ($reminder->isRepeating() && ($reminder->interval_minutes || $mine->pending_since)))
                 <form method="POST" action="{{ route('reminders.done', $reminder) }}">
                     @csrf

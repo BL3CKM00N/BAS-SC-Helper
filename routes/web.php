@@ -4,6 +4,7 @@ use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AccountSecurityController;
 use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\FolderController;
 use App\Http\Controllers\PasswordSetupController;
 use App\Http\Controllers\PushController;
 use App\Http\Controllers\ReminderController;
@@ -86,6 +87,11 @@ Route::middleware(['auth', 'password.chosen'])->group(function () {
     Route::post('/reminders/{reminder}/done', [ReminderController::class, 'done'])->name('reminders.done');
     Route::post('/reminders/{reminder}/snooze', [ReminderController::class, 'snooze'])->name('reminders.snooze');
     Route::post('/reminders/{reminder}/skip', [ReminderController::class, 'skip'])->name('reminders.skip');
+    Route::post('/reminders/{reminder}/folder', [FolderController::class, 'move'])->name('reminders.folder');
+
+    Route::post('/folders', [FolderController::class, 'store'])->name('folders.store');
+    Route::patch('/folders/{folder}', [FolderController::class, 'update'])->name('folders.update');
+    Route::delete('/folders/{folder}', [FolderController::class, 'destroy'])->name('folders.destroy');
 
     // Your own account. /settings was the old, single page and now leads here.
     Route::redirect('/settings', '/account');

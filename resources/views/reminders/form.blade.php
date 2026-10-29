@@ -36,6 +36,18 @@
             <textarea id="notes" name="notes" rows="2" maxlength="2000" class="{{ $inputClass }}">{{ old('notes', $reminder->notes) }}</textarea>
         </div>
 
+        @if ($folders->isNotEmpty())
+            <div>
+                <label for="folder_id" class="mb-1 block text-sm text-[#b8bab8]">Folder (optional)</label>
+                <select id="folder_id" name="folder_id" class="{{ $inputClass }}">
+                    <option value="">No folder</option>
+                    @foreach ($folders as $option)
+                        <option value="{{ $option->id }}" @selected((int) old('folder_id', $folderId) === $option->id)>{{ $option->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+        @endif
+
         <fieldset>
             <legend class="mb-2 text-sm text-[#b8bab8]">Kind of reminder</legend>
             <div class="grid gap-3 sm:grid-cols-2">

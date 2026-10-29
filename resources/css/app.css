@@ -227,3 +227,39 @@ input[type="datetime-local"]::-webkit-date-and-time-value {
     min-height: 1.5em;
     text-align: left;
 }
+
+/* Dragging a reminder onto a folder */
+.drag-ghost {
+    position: fixed;
+    z-index: 60;
+    max-width: 16rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #1da15e;
+    border-radius: 0.75rem;
+    background: #262623;
+    color: #fff;
+    font-size: 0.875rem;
+    box-shadow: 0 10px 30px rgb(0 0 0 / 0.5);
+    pointer-events: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transform: translate(-50%, -120%);
+}
+
+.is-dragging {
+    opacity: 0.45;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.is-dragging-page {
+    user-select: none;
+    -webkit-user-select: none;
+    cursor: grabbing;
+}
+
+.drop-ready {
+    outline: 2px dashed #1da15e;
+    outline-offset: 3px;
+}

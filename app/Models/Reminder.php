@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
@@ -74,6 +75,16 @@ class Reminder extends Model
     public function assignee(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assignee_id');
+    }
+
+    /**
+     * The folders (of any person) this reminder has been put in.
+     *
+     * @return BelongsToMany<Folder, $this>
+     */
+    public function folders(): BelongsToMany
+    {
+        return $this->belongsToMany(Folder::class);
     }
 
     /**

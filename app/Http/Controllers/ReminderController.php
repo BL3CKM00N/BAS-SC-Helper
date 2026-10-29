@@ -35,16 +35,32 @@ class ReminderController extends Controller
         $reminders = $this->visible($user, $scope)->get();
         $due = $this->engine->dueNow($user)->filter(fn (ReminderRecipient $r) => $reminders->contains('id', $r->reminder_id));
 
+        // Reminders the person put in a folder are listed in that folder instead of below.
+        $folders = $user->folders()->with('reminders:id')->orderBy('name')->get();
+        $filed = $folders->flatMap(fn ($folder) => $folder->reminders->pluck('id'))->unique();
+        $order = fn (Reminder $r) => $r->recipients->first()?->next_notify_at ?? $r->due_at ?? now()->addYear();
+        $loose = $reminders->reject(fn (Reminder $r) => $filed->contains($r->id));
+
+        foreach ($folders as $folder) {
+            $inFolder = $reminders->filter(fn (Reminder $r) => $folder->reminders->contains('id', $r->id));
+            $folder->setRelation('items', $inFolder
+                ->reject(fn (Reminder $r) => $due->contains('reminder_id', $r->id))
+                ->sortBy(fn (Reminder $r) => ($r->completed_at ? '1' : '0').$order($r)->format('Y-m-d H:i:s'))
+                ->values());
+            $folder->due_count = $inFolder->filter(fn (Reminder $r) => $due->contains('reminder_id', $r->id))->count();
+        }
+
         return view('reminders.index', [
             'engine' => $this->engine,
             'teams' => $teams,
             'scope' => $scope,
             'due' => $due,
-            'upcoming' => $reminders
+            'folders' => $folders,
+            'upcoming' => $loose
                 ->filter(fn (Reminder $r) => $r->isActive() && ! $due->contains('reminder_id', $r->id))
-                ->sortBy(fn (Reminder $r) => $r->recipients->first()?->next_notify_at ?? $r->due_at ?? now()->addYear())
+                ->sortBy($order)
                 ->values(),
-            'done' => $reminders->filter(fn (Reminder $r) => $r->completed_at)->sortByDesc('completed_at')->take(20)->values(),
+            'done' => $loose->filter(fn (Reminder $r) => $r->completed_at)->sortByDesc('completed_at')->take(20)->values(),
         ]);
     }
 
@@ -82,6 +98,7 @@ class ReminderController extends Controller
 
         $reminder = Reminder::query()->create($data + ['created_by' => $user->getKey()]);
         $this->engine->sync($reminder);
+        $user->fileReminder($reminder, $request->integer('folder_id') ?: null);
 
         return redirect()->route('reminders.index')->with('status', 'Reminder "'.$reminder->title.'" was added.');
     }
@@ -108,6 +125,7 @@ class ReminderController extends Controller
         $reminder->save();
 
         $reschedule ? $this->engine->reschedule($reminder) : $this->engine->sync($reminder);
+        $request->user()->fileReminder($reminder, $request->integer('folder_id') ?: null);
 
         return redirect()->route('reminders.index')->with('status', 'Reminder saved.');
     }
@@ -210,6 +228,8 @@ class ReminderController extends Controller
             'user' => $user,
             'teams' => $teams->each(fn (Team $team) => $team->load('users')),
             'leadOptions' => self::LEAD_OPTIONS,
+            'folders' => $user->folders()->orderBy('name')->get(),
+            'folderId' => $reminder->exists ? $reminder->folders()->whereIn('folders.id', $user->folders()->select('id'))->value('folders.id') : null,
         ];
     }
 
@@ -238,6 +258,7 @@ class ReminderController extends Controller
             'nag_minutes' => ['nullable', 'integer', 'min:1', 'max:1440'],
             'interval_minutes' => [Rule::requiredIf(fn () => $request->input('type') === Reminder::REPEATING && $request->input('frequency') !== 'daily'), 'nullable', 'integer', 'min:5', 'max:1440'],
             'daily_target' => ['nullable', 'integer', 'min:1', 'max:50'],
+            'folder_id' => ['nullable', 'integer', Rule::exists('folders', 'id')->where('user_id', $user->getKey())],
         ], [
             'due_at.required_if' => 'A deadline needs a date and time.',
             'interval_minutes.required_if' => 'Say how many minutes it should wait before coming back.',

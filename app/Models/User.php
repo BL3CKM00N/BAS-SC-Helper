@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -72,6 +73,30 @@ class User extends Authenticatable implements FilamentUser
     public function teams(): BelongsToMany
     {
         return $this->belongsToMany(Team::class)->withTimestamps();
+    }
+
+    /**
+     * The person's own folders on the reminders page.
+     *
+     * @return HasMany<Folder, $this>
+     */
+    public function folders(): HasMany
+    {
+        return $this->hasMany(Folder::class);
+    }
+
+    /**
+     * Put a reminder in one of this person's folders (or take it out of all of them with null).
+     */
+    public function fileReminder(Reminder $reminder, ?int $folderId): void
+    {
+        $mine = $this->folders()->pluck('id');
+
+        $reminder->folders()->detach($mine);
+
+        if ($folderId && $mine->contains($folderId)) {
+            $reminder->folders()->attach($folderId);
+        }
     }
 
     /**
